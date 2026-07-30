@@ -40,7 +40,15 @@
 
         .floating-zoom-controls {
             right: max(1rem, env(safe-area-inset-right));
-            bottom: max(1rem, env(safe-area-inset-bottom));
+            bottom: calc(5rem + env(safe-area-inset-bottom));
+        }
+
+        .mobile-tools {
+            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+        }
+
+        .mobile-bottom-bar {
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
         }
 
         @media (min-width: 640px) {
@@ -48,6 +56,7 @@
                 right: max(1.5rem, env(safe-area-inset-right));
                 bottom: max(1.5rem, env(safe-area-inset-bottom));
             }
+            .mobile-tools { padding-bottom: 1.25rem; }
         }
     </style>
 </head>
@@ -340,6 +349,7 @@
             const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
             const [interactionMode, setInteractionMode] = useState(null);
             const [showOpenModal, setShowOpenOptions] = useState(false);
+            const [showMobileTools, setShowMobileTools] = useState(true);
             const fileInputRef = useRef(null);
 
             const mainRef = useRef(null);
@@ -531,6 +541,7 @@
                         };
                     });
                     setElements([{...newEl, x: 0, y: 0, w: Number(baseDraft.w), h: Number(baseDraft.h)}, ...initialRooms]);
+                    setShowMobileTools(false);
                     setTimeout(resetView, 50);
                 } else {
                     setElements(prev => [...prev, newEl]);
@@ -769,15 +780,15 @@
 
             return (
                 <div className="app-shell flex flex-col bg-slate-100 overflow-hidden font-sans select-none text-slate-900">
-                    <header className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center z-50 shrink-0 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><SvgIcon name="Home" size={22} /></div>
+                    <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center z-50 shrink-0 shadow-sm">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                            <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shrink-0"><SvgIcon name="Home" size={22} /></div>
                             <div>
-                                <h1 className="text-lg font-bold leading-tight">間取りスケッチャー</h1>
-                                <p className="text-[10px] text-indigo-500 font-black uppercase tracking-tighter">Preset & Origin Sync v2.1</p>
+                                <h1 className="text-sm sm:text-lg font-bold leading-tight whitespace-nowrap">間取りスケッチャー</h1>
+                                <p className="hidden sm:block text-[10px] text-indigo-500 font-black uppercase tracking-tighter">Preset & Origin Sync v2.1</p>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="hidden sm:flex gap-2">
                             <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".json" className="hidden" />
                             
                             <button onClick={() => setShowOpenOptions(true)} className="bg-white border border-slate-200 px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold hover:bg-slate-50 transition-all shadow-sm">
@@ -792,6 +803,9 @@
                                 <SvgIcon name="Download" size={16}/><span>PNG出力</span>
                             </button>
                         </div>
+                        <button onClick={() => setShowOpenOptions(true)} aria-label="プランを開く" className="sm:hidden w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-700 shadow-sm">
+                            <SvgIcon name="Upload" size={18}/>
+                        </button>
                     </header>
 
                     {showOpenModal && (
@@ -820,8 +834,20 @@
                         </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row flex-1 overflow-hidden relative">
-                        <aside className="w-full sm:w-64 max-h-[42dvh] sm:max-h-none bg-white border-b sm:border-b-0 sm:border-r border-slate-200 flex flex-col overflow-y-auto p-3 sm:p-5 space-y-6 scrollbar-hide z-40 shrink-0 shadow-xl">
+                    <div className="flex flex-row flex-1 overflow-hidden relative">
+                        {showMobileTools && <button aria-label="ツールを閉じる" onClick={() => baseEl && setShowMobileTools(false)} className="sm:hidden absolute inset-0 z-30 bg-slate-950/20 backdrop-blur-[1px]" />}
+                        <aside className={`${showMobileTools ? 'flex' : 'hidden'} mobile-tools sm:flex fixed sm:static inset-x-0 bottom-0 sm:inset-auto w-full sm:w-64 max-h-[72dvh] sm:max-h-none bg-white border-t sm:border-t-0 sm:border-r border-slate-200 flex-col overflow-y-auto p-4 sm:p-5 space-y-6 scrollbar-hide z-40 shrink-0 shadow-2xl sm:shadow-xl rounded-t-3xl sm:rounded-none`}>
+                            <div className="sm:hidden sticky -top-4 z-10 -mx-4 -mt-4 mb-1 flex items-center justify-between border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur">
+                                <div>
+                                    <p className="text-sm font-black text-slate-800">{baseEl ? '編集ツール' : '家のサイズを設定'}</p>
+                                    <p className="text-[10px] font-bold text-slate-400">{baseEl ? '部屋・家具・寸法を編集できます' : '最初に外形を決めてください'}</p>
+                                </div>
+                                {baseEl && (
+                                    <button onClick={() => setShowMobileTools(false)} aria-label="閉じる" className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                        <SvgIcon name="Plus" size={22} className="rotate-45" />
+                                    </button>
+                                )}
+                            </div>
                             {!baseEl ? (
                                 <section className="space-y-4 pt-2">
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">家のサイズを決定</h3>
@@ -879,7 +905,7 @@
                                     </section>
                                     <section className="space-y-4">
                                         <h3 className="hidden sm:block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">部屋を追加</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-3 sm:grid-cols-2 gap-2">
                                             {ROOM_DATA.map(r => (
                                                 <button key={r.label} onClick={() => addElement(r)} className="flex flex-col items-center p-2 rounded-xl border border-slate-50 bg-slate-50 hover:border-indigo-300 transition-all group shadow-sm">
                                                     <div className={`w-full h-4 sm:h-7 rounded-lg ${r.color.split(' ')[0]} border ${r.color.split(' ')[1]}`} />
@@ -894,10 +920,11 @@
                                     </section>
                                     <section className="space-y-4">
                                         <h3 className="hidden sm:block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">家具を配置</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-3 sm:grid-cols-2 gap-2">
                                             {FURNITURE_DATA.map(f => (
                                                 <button key={f.label} onClick={() => addElement(f)} className="flex flex-col items-center p-2 rounded-xl border border-slate-50 bg-slate-50 hover:border-indigo-200 transition-all group shadow-sm">
-                                                    <span className="hidden sm:inline text-[9px] font-black text-slate-600 mt-2 group-hover:text-indigo-600 uppercase tracking-tighter">{f.label}</span>
+                                                    <div className={`w-full h-4 sm:h-7 rounded-lg ${f.color.split(' ')[0]} border ${f.color.split(' ')[1]}`} />
+                                                    <span className="text-[9px] font-black text-slate-600 mt-2 group-hover:text-indigo-600 uppercase tracking-tighter truncate w-full text-center">{f.label}</span>
                                                 </button>
                                             ))}
                                             <button onClick={() => addCustomElement('furniture')} className="flex flex-col items-center justify-center p-2 rounded-xl border-2 border-dashed border-slate-200 bg-white hover:border-indigo-300 hover:text-indigo-600 transition-all group shadow-sm min-h-[50px]">
@@ -986,6 +1013,21 @@
                                 </div>
                             </div>
                         </main>
+
+                        {baseEl && <nav className="mobile-bottom-bar sm:hidden absolute inset-x-0 bottom-0 z-50 grid grid-cols-4 gap-1 border-t border-slate-200 bg-white/95 px-2 pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur no-print">
+                            <button onClick={() => setShowMobileTools(true)} className={`min-h-[52px] rounded-xl flex flex-col items-center justify-center gap-1 text-[9px] font-black ${showMobileTools ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600'}`}>
+                                <SvgIcon name="Plus" size={20}/><span>{baseEl ? '編集' : 'サイズ'}</span>
+                            </button>
+                            <button onClick={resetView} disabled={!baseEl} className="min-h-[52px] rounded-xl flex flex-col items-center justify-center gap-1 text-[9px] font-black text-slate-600 disabled:opacity-30">
+                                <SvgIcon name="Search" size={20}/><span>全体表示</span>
+                            </button>
+                            <button onClick={exportProject} disabled={!baseEl} className="min-h-[52px] rounded-xl flex flex-col items-center justify-center gap-1 text-[9px] font-black text-slate-600 disabled:opacity-30">
+                                <SvgIcon name="FileJson" size={20}/><span>保存</span>
+                            </button>
+                            <button onClick={exportPNG} disabled={!baseEl} className="min-h-[52px] rounded-xl flex flex-col items-center justify-center gap-1 text-[9px] font-black text-slate-600 disabled:opacity-30">
+                                <SvgIcon name="Download" size={20}/><span>PNG</span>
+                            </button>
+                        </nav>}
                     </div>
                 </div>
             );

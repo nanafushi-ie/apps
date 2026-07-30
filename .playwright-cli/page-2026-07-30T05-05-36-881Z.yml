@@ -1,0 +1,84 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - heading "間取りスケッチャー" [level=1] [ref=f2e11]
+    - button "プランを開く" [ref=f2e12] [cursor=pointer]
+  - generic [ref=f2e16]:
+    - main [ref=f2e54]:
+      - generic:
+        - generic:
+          - generic [ref=f2e68]:
+            - generic:
+              - generic: リビング
+              - generic:
+                - generic: 11.2畳 / 18.22㎡
+                - generic: 5.00m × 3.64m
+          - generic [ref=f2e69]:
+            - generic:
+              - generic: ダイニング
+              - generic:
+                - generic: 6.3畳 / 10.14㎡
+                - generic: 3.19m × 3.19m
+          - generic [ref=f2e70]:
+            - generic:
+              - generic: キッチン
+              - generic:
+                - generic: 3.6畳 / 5.80㎡
+                - generic: 3.19m × 1.82m
+          - generic [ref=f2e71]:
+            - generic:
+              - generic: 玄関
+              - generic:
+                - generic: 6.3畳 / 10.14㎡
+                - generic: 3.19m × 3.19m
+          - generic [ref=f2e72]:
+            - generic:
+              - generic: ワークスペース
+              - generic:
+                - generic: 2.0畳 / 3.31㎡
+                - generic: 1.82m × 1.82m
+          - generic [ref=f2e73]:
+            - generic:
+              - generic: 風呂
+              - generic:
+                - generic: 2.0畳 / 3.31㎡
+                - generic: 1.82m × 1.82m
+          - generic [ref=f2e74]:
+            - generic:
+              - generic: トイレ
+              - generic:
+                - generic: 1.0畳 / 1.66㎡
+                - generic: 1.82m × 0.91m
+          - generic [ref=f2e75]:
+            - generic:
+              - generic: 洗面
+              - generic:
+                - generic: 1.5畳 / 2.48㎡
+                - generic: 1.82m × 1.36m
+          - generic [ref=f2e76]:
+            - generic:
+              - generic: ランドリー
+              - generic:
+                - generic: 2.0畳 / 3.31㎡
+                - generic: 1.82m × 1.82m
+          - generic [ref=f2e77]:
+            - generic:
+              - generic: WIC
+              - generic:
+                - generic: 3.6畳 / 5.80㎡
+                - generic: 3.19m × 1.82m
+          - generic [ref=f2e78]:
+            - generic:
+              - generic: 階段
+              - generic:
+                - generic: 1.0畳 / 1.66㎡
+                - generic: 1.82m × 0.91m
+      - generic [ref=f2e60]:
+        - button [ref=f2e61] [cursor=pointer]
+        - generic [ref=f2e65]:
+          - button "+" [ref=f2e66] [cursor=pointer]
+          - button "-" [ref=f2e67] [cursor=pointer]
+    - navigation [ref=f2e79]:
+      - button "編集" [ref=f2e80] [cursor=pointer]
+      - button "全体表示" [ref=f2e83] [cursor=pointer]
+      - button "保存" [ref=f2e88] [cursor=pointer]
+      - button "PNG" [ref=f2e93] [cursor=pointer]

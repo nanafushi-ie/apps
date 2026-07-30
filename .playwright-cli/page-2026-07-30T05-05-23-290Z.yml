@@ -1,0 +1,48 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - heading "間取りスケッチャー" [level=1] [ref=f2e11]
+    - button "プランを開く" [ref=f2e12] [cursor=pointer]
+  - generic [ref=f2e16]:
+    - button "ツールを閉じる" [ref=f2e17] [cursor=pointer]
+    - complementary [ref=f2e18]:
+      - generic [ref=f2e20]:
+        - paragraph [ref=f2e21]: 家のサイズを設定
+        - paragraph [ref=f2e22]: 最初に外形を決めてください
+      - generic [ref=f2e23]:
+        - heading "家のサイズを決定" [level=3] [ref=f2e24]
+        - generic [ref=f2e25]:
+          - generic [ref=f2e26]:
+            - paragraph [ref=f2e27]: 寸法モジュール
+            - generic [ref=f2e28]:
+              - button "畳モジュール 1目盛り = 455mm" [ref=f2e29] [cursor=pointer]:
+                - generic [ref=f2e30]: 畳モジュール
+                - generic [ref=f2e31]: 1目盛り = 455mm
+              - button "メーターモジュール 1目盛り = 500mm" [ref=f2e32] [cursor=pointer]:
+                - generic [ref=f2e33]: メーターモジュール
+                - generic [ref=f2e34]: 1目盛り = 500mm
+          - generic [ref=f2e35]:
+            - generic [ref=f2e36]: 幅 (mm)
+            - generic [ref=f2e37]:
+              - textbox [ref=f2e38]: "9100"
+              - generic [ref=f2e39]:
+                - button "+" [ref=f2e40] [cursor=pointer]
+                - button "-" [ref=f2e41] [cursor=pointer]
+          - generic [ref=f2e42]:
+            - generic [ref=f2e43]: 奥行 (mm)
+            - generic [ref=f2e44]:
+              - textbox [ref=f2e45]: "9100"
+              - generic [ref=f2e46]:
+                - button "+" [ref=f2e47] [cursor=pointer]
+                - button "-" [ref=f2e48] [cursor=pointer]
+          - generic [ref=f2e49]:
+            - paragraph [ref=f2e50]: 家の外形面積
+            - paragraph [ref=f2e51]: 25.05坪
+            - paragraph [ref=f2e52]: 82.81㎡（9.10m × 9.10m）
+          - button "確定して配置" [ref=f2e53] [cursor=pointer]
+    - main [ref=f2e54]:
+      - paragraph [ref=f2e59]: 家の外形を入力して開始
+      - generic [ref=f2e60]:
+        - button [ref=f2e61] [cursor=pointer]
+        - generic [ref=f2e65]:
+          - button "+" [ref=f2e66] [cursor=pointer]
+          - button "-" [ref=f2e67] [cursor=pointer]

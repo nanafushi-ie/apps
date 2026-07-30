@@ -1,0 +1,8 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - heading "間取りスケッチャー" [level=1] [ref=e10]
+    - paragraph [ref=e11]: 閲覧するにはパスワードを入力してください
+  - generic [ref=e12]: パスワード
+  - textbox "パスワード" [active] [ref=e13]
+  - button "開く" [disabled] [ref=e14]
+  - paragraph [ref=e15]: 認証状態はこのブラウザに保存されます
