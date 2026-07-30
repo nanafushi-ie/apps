@@ -154,12 +154,62 @@ label {
   font-size: 12px;
   font-weight: 700;
 }
+.label-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-button {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #aab6b2;
+  border-radius: 50%;
+  color: var(--leaf);
+  background: #fff;
+  font-family: Georgia, serif;
+  font-size: 12px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  vertical-align: middle;
+}
+.info-button:hover,
+.info-button:focus-visible {
+  border-color: var(--leaf);
+  outline: 3px solid rgba(36, 116, 95, .12);
+}
+legend .info-button, h3 .info-button { margin-left: 5px; }
 label small {
   display: block;
   margin-top: 7px;
   color: var(--muted);
+  font-size: 10px;
   font-weight: 500;
   line-height: 1.5;
+}
+.live-estimate {
+  display: block;
+  margin-top: 9px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  color: var(--leaf-dark);
+  background: #e9f2ee;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.details-explanation {
+  margin: 17px 0 0;
+  padding: 12px 13px;
+  border-left: 3px solid var(--sun);
+  color: var(--muted);
+  background: #fff9eb;
+  font-size: 10px;
+  line-height: 1.7;
 }
 input[type="number"], select {
   width: 100%;
@@ -256,6 +306,7 @@ summary { padding: 22px 0 0; font-size: 13px; font-weight: 800; cursor: pointer;
 .legend i { width: 14px; height: 3px; border-radius: 4px; }
 .chart-wrap { position: relative; width: 100%; height: 400px; margin-top: 14px; }
 #costChart { width: 100%; height: 100%; }
+#costChart { touch-action: pan-y; }
 .chart-tooltip {
   position: absolute;
   z-index: 3;
@@ -306,6 +357,15 @@ th { color: var(--muted); font-size: 9px; }
 .x-button { background: #111; }
 .threads-button { background: #292929; }
 .modal-note { margin: 14px 0 0; color: var(--muted); font-size: 10px; text-align: center; }
+.help-card { width: min(520px, 100%); }
+.help-card h2 { padding-right: 30px; font-size: 24px; }
+.help-card > p:not(.step-label) {
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.help-card .primary-button { min-width: 130px; }
 
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
@@ -326,10 +386,17 @@ th { color: var(--muted); font-size: 9px; }
   .chart-wrap { height: 325px; }
   .insight-grid { grid-template-columns: 1fr; }
   .share-buttons { grid-template-columns: 1fr 1fr; }
+  .ghost-button, .primary-button, .social-button { min-height: 46px; }
+  .info-button { width: 30px; height: 30px; font-size: 14px; }
+  .label-title { gap: 8px; }
+  input[type="number"], select { min-height: 48px; font-size: 16px; }
+  .range-row output { min-width: 60px; padding: 8px; }
+  summary { min-height: 48px; display: flex; align-items: center; }
+  .modal { padding: 12px; }
+  .modal-card { padding: 25px 20px; border-radius: 20px; }
 }
 @media (max-width: 390px) {
   .field-grid { grid-template-columns: 1fr; }
   .brand small { display: none; }
   .site-header > .ghost-button { padding: 0 13px; }
 }
-

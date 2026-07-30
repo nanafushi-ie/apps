@@ -189,7 +189,7 @@ function renderSummary(result) {
       key: "solar",
       label: "太陽光のみ",
       value: last.solar,
-      note: `${formatBreakEven(result.solarCrossing.final)}で損益分岐`
+      note: `${formatBreakEven(result.solarCrossing.final)}で元が取れる見込み`
     }
   ];
   if (result.inputs.includeBattery) {
@@ -197,7 +197,7 @@ function renderSummary(result) {
       key: "battery",
       label: "太陽光＋蓄電池",
       value: last.battery,
-      note: `${formatBreakEven(result.batteryCrossing.final)}で損益分岐`
+      note: `${formatBreakEven(result.batteryCrossing.final)}で元が取れる見込み`
     });
   }
   $("summaryCards").innerHTML = cards
@@ -319,16 +319,16 @@ function renderInsights(result) {
   const last = result.data[result.data.length - 1];
   const solarSaving = last.noSolar - last.solar;
   if (result.solarCrossing.final == null) {
-    $("breakEvenHeadline").textContent = "太陽光のみは30年以内に損益分岐しません";
-    $("breakEvenText").textContent = `30年後の差額は${formatMoney(Math.abs(solarSaving))}です。初期費用や発電量を見直してみてください。`;
+    $("breakEvenHeadline").textContent = "太陽光のみは30年以内には元が取れない見込みです";
+    $("breakEvenText").textContent = `30年後に支払う合計金額の差は${formatMoney(Math.abs(solarSaving))}です。最初にかかる費用や発電量を見直してみてください。`;
   } else {
-    $("breakEvenHeadline").textContent = `太陽光のみは約${result.solarCrossing.final.toFixed(1)}年で損益分岐`;
-    $("breakEvenText").textContent = `30年後には太陽光なしと比べて、累積支出が${formatMoney(solarSaving)}少ない試算です。`;
+    $("breakEvenHeadline").textContent = `太陽光のみは約${result.solarCrossing.final.toFixed(1)}年で元が取れる見込みです`;
+    $("breakEvenText").textContent = `30年後には太陽光なしと比べて、支払う合計金額が${formatMoney(solarSaving)}少ない試算です。`;
   }
   const initialGeneration = inputs.panelCapacity * inputs.regionalYield * inputs.roofFactor;
   $("generationHeadline").textContent = `${inputs.prefecture}で年間約${yen.format(initialGeneration)}kWh`;
   $("generationText").textContent =
-    `県庁所在地相当の地域係数（${yen.format(inputs.regionalYield)}kWh/kW・年）と屋根の向きから初年度を概算。目安の範囲は${yen.format(initialGeneration * 0.9)}〜${yen.format(initialGeneration * 1.1)}kWhです。`;
+    `この地域の代表的な日射条件と屋根の向きから、最初の1年間を概算しました。実際の天候などを考えた目安の範囲は${yen.format(initialGeneration * 0.9)}〜${yen.format(initialGeneration * 1.1)}kWhです。`;
   $("regionNote").textContent = `地域係数：${yen.format(inputs.regionalYield)} kWh/kW・年（概算）`;
 }
 
@@ -350,7 +350,7 @@ function renderTable(result) {
 function shareText(result) {
   const last = result.data[result.data.length - 1];
   const saving = last.noSolar - last.solar;
-  return `${result.inputs.prefecture}・太陽光${result.inputs.panelCapacity.toFixed(1)}kWでシミュレーションしました。\n\n太陽光のみの損益分岐：${formatBreakEven(result.solarCrossing.final)}後\n30年後の推定節約額：約${yen.format(Math.max(saving, 0) / 10000)}万円\n\n太陽光発電の導入効果をシミュレーションできます。\n${TOP_PAGE_URL}\n\n#ななふしの家 #太陽光発電 #住宅`;
+  return `${result.inputs.prefecture}・太陽光${result.inputs.panelCapacity.toFixed(1)}kWでシミュレーションしました。\n\n太陽光のみで元が取れるまで：${formatBreakEven(result.solarCrossing.final)}\n30年後に減らせる金額：約${yen.format(Math.max(saving, 0) / 10000)}万円\n\n太陽光発電の導入効果をシミュレーションできます。\n${TOP_PAGE_URL}\n\n#ななふしの家 #太陽光発電 #住宅`;
 }
 
 function drawShareImage(result) {
@@ -380,7 +380,7 @@ function drawShareImage(result) {
   ctx.fill();
   ctx.fillStyle = "#8bc8b7";
   ctx.font = '700 16px "Avenir Next", sans-serif';
-  ctx.fillText("BREAK-EVEN", 92, 248);
+  ctx.fillText("元が取れるまで", 92, 248);
   ctx.fillStyle = "#fff";
   ctx.font = '700 36px "Hiragino Sans", sans-serif';
   ctx.fillText(formatBreakEven(result.solarCrossing.final), 92, 302);
@@ -452,6 +452,10 @@ function update() {
   $("priceGrowthOutput").textContent = `${numberValue("priceGrowth").toFixed(1)}%`;
   $("selfConsumptionOutput").textContent = `${numberValue("selfConsumption")}%`;
   $("batteryConsumptionOutput").textContent = `${numberValue("batteryConsumption")}%`;
+  const monthlyUsage = latest.inputs.usage / 12;
+  const monthlyCost = monthlyUsage * latest.inputs.electricityPrice;
+  $("monthlyCostEstimate").textContent =
+    `月平均の目安：約${yen.format(monthlyUsage)}kWh／約${yen.format(monthlyCost)}円`;
   $("batteryFields").hidden = !latest.inputs.includeBattery;
   renderSummary(latest);
   renderChart(latest);
@@ -468,6 +472,19 @@ function openShareModal() {
 
 function closeShareModal() {
   $("shareModal").hidden = true;
+  document.body.style.overflow = "";
+}
+
+function openHelpModal(button) {
+  $("helpTitle").textContent = button.dataset.helpTitle;
+  $("helpText").textContent = button.dataset.help;
+  $("helpModal").hidden = false;
+  document.body.style.overflow = "hidden";
+  $("helpModal").querySelector("[data-close-help]").focus();
+}
+
+function closeHelpModal() {
+  $("helpModal").hidden = true;
   document.body.style.overflow = "";
 }
 
@@ -561,8 +578,18 @@ $("copyShareText").addEventListener("click", async (event) => {
   }
 });
 document.querySelectorAll("[data-close-modal]").forEach((node) => node.addEventListener("click", closeShareModal));
-document.addEventListener("keydown", (event) => event.key === "Escape" && closeShareModal());
-chart.addEventListener("mousemove", handleChartMove);
-chart.addEventListener("mouseleave", () => ($("chartTooltip").hidden = true));
+document.querySelectorAll(".info-button").forEach((button) => {
+  button.setAttribute("aria-label", `${button.dataset.helpTitle}の説明を開く`);
+  button.addEventListener("click", () => openHelpModal(button));
+});
+document.querySelectorAll("[data-close-help]").forEach((node) => node.addEventListener("click", closeHelpModal));
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!$("helpModal").hidden) closeHelpModal();
+  else closeShareModal();
+});
+chart.addEventListener("pointermove", handleChartMove);
+chart.addEventListener("pointerdown", handleChartMove);
+chart.addEventListener("pointerleave", () => ($("chartTooltip").hidden = true));
 
 update();

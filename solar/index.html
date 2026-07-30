@@ -48,30 +48,58 @@
               <label>
                 都道府県
                 <select id="prefecture" name="prefecture"></select>
+                <small>
+                  設置予定地を選びます。県庁所在地相当の日射条件をもとに、パネル1kW当たりの年間発電量を概算します。
+                </small>
                 <small id="regionNote"></small>
               </label>
               <div class="field-grid">
                 <label>
-                  年間電力使用量
+                  <span class="label-title">
+                    1年間に使う電気の量
+                    <button class="info-button" type="button"
+                      data-help-title="年間電力使用量（kWh）"
+                      data-help="家全体で1年間に使った電気の量です。電力会社の検針票やアプリにある、毎月の「使用量」を12か月分足すと確認できます。kWh（キロワット時）は、使った電気の量を表す単位です。">i</button>
+                  </span>
                   <span class="input-unit">
                     <input id="annualUsage" type="number" min="500" max="30000" step="100" value="4700" />
                     <b>kWh</b>
                   </span>
+                  <small>
+                    1年間に家庭で使う電力量です。検針票や電力会社のアプリに記載された12か月分の「使用量」を合計します。
+                  </small>
+                  <span id="monthlyCostEstimate" class="live-estimate"></span>
                 </label>
                 <label>
-                  買電単価
+                  <span class="label-title">
+                    買電単価
+                    <button class="info-button" type="button"
+                      data-help-title="買電単価"
+                      data-help="電力会社から電気を1kWh買うときに払う金額です。太陽光で発電した電気を家で使うと、この金額分の購入を減らせます。「電気を売る価格」である売電単価とは別のものです。">i</button>
+                  </span>
                   <span class="input-unit">
                     <input id="electricityPrice" type="number" min="1" max="200" step="0.1" value="35" />
                     <b>円/kWh</b>
                   </span>
+                  <small>
+                    電力会社から1kWh買うときの概算単価です。基本料金を除き、燃料費調整額や再エネ賦課金を含めた平均値を入力します。
+                  </small>
                 </label>
               </div>
               <label>
-                電気代の年間上昇率
+                <span class="label-title">
+                  電気代が毎年上がる割合
+                  <button class="info-button" type="button"
+                    data-help-title="電気代の年間上昇率"
+                    data-help="将来、電気を買う価格が毎年どのくらい上がると考えるかを表します。たとえば3%なら、35円の翌年を約36.1円として計算します。将来の価格は不確実なので、0〜5%など複数の値で比べるのがおすすめです。">i</button>
+                </span>
                 <div class="range-row">
                   <input id="priceGrowth" type="range" min="0" max="8" step="0.1" value="3" />
                   <output id="priceGrowthOutput">3.0%</output>
                 </div>
+                <small>
+                  買電単価が毎年どれくらい上がると仮定するかを指定します。3%なら、翌年の単価を現在の1.03倍として計算します。
+                </small>
               </label>
             </fieldset>
 
@@ -79,11 +107,17 @@
               <legend><span>02</span> 太陽光パネル</legend>
               <div class="field-grid">
                 <label>
-                  パネル容量
+                  <span class="label-title">
+                    太陽光パネルの大きさ
+                    <button class="info-button" type="button"
+                      data-help-title="パネル容量（kW）"
+                      data-help="パネルが一度に発電できる最大の大きさです。kW（キロワット）で表します。一般に、数字が大きいほど発電量も設置費用も増えます。実際の発電量は天候や屋根の向きでも変わります。">i</button>
+                  </span>
                   <span class="input-unit">
                     <input id="panelCapacity" type="number" min="0.5" max="30" step="0.1" value="5" />
                     <b>kW</b>
                   </span>
+                  <small>設置するパネルの最大出力です。大きいほど発電量が増えます。</small>
                 </label>
                 <label>
                   設置費用
@@ -91,22 +125,35 @@
                     <input id="solarCost" type="number" min="0" max="20000000" step="10000" value="1400000" />
                     <b>円</b>
                   </span>
+                  <small>パネル、架台、工事などを含む導入時の総額を入力します。</small>
                 </label>
               </div>
               <div class="field-grid">
                 <label>
-                  補助金
+                  <span class="label-title">
+                    太陽光に使える補助金
+                    <button class="info-button" type="button"
+                      data-help-title="補助金"
+                      data-help="国や自治体などから受け取れる導入支援のお金です。受け取れることが確定している金額だけを入れてください。このシミュレーターでは、設置費用から差し引きます。">i</button>
+                  </span>
                   <span class="input-unit">
                     <input id="solarSubsidy" type="number" min="0" max="10000000" step="10000" value="100000" />
                     <b>円</b>
                   </span>
+                  <small>太陽光設備に使える補助金です。初期費用から差し引いて計算します。</small>
                 </label>
                 <label>
-                  年間劣化率
+                  <span class="label-title">
+                    発電量が毎年減る割合
+                    <button class="info-button" type="button"
+                      data-help-title="太陽光パネルの経年劣化"
+                      data-help="太陽光パネルは長く使ううちに、少しずつ発電性能が下がります。0.5%の場合、翌年は前年の99.5%を発電するものとして計算します。">i</button>
+                  </span>
                   <span class="input-unit">
                     <input id="panelDegradation" type="number" min="0" max="5" step="0.1" value="0.5" />
                     <b>%</b>
                   </span>
+                  <small>経年による発電性能の低下率です。0.5%なら毎年前年の99.5%を発電すると仮定します。</small>
                 </label>
               </div>
               <label>
@@ -118,18 +165,30 @@
                   <option value="0.70">北東・北西</option>
                   <option value="0.55">北</option>
                 </select>
+                <small>パネルの方角による発電量の差を補正します。南向きを100%として概算します。</small>
               </label>
               <label>
-                太陽光のみの自家消費率
+                <span class="label-title">
+                  発電した電気を家で使う割合
+                  <button class="info-button" type="button"
+                    data-help-title="自家消費率"
+                    data-help="太陽光で発電した電気のうち、売らずに自宅で使う割合です。昼間に在宅している時間が長い家庭ほど高くなりやすく、蓄電池があると夜にも回せるため、さらに高くできます。">i</button>
+                </span>
                 <div class="range-row">
                   <input id="selfConsumption" type="range" min="10" max="80" step="1" value="30" />
                   <output id="selfConsumptionOutput">30%</output>
                 </div>
+                <small>発電した電気のうち、その場で家庭内に使える割合です。残りは売電すると仮定します。</small>
               </label>
             </fieldset>
 
             <fieldset>
-              <legend><span>03</span> 蓄電池</legend>
+              <legend>
+                <span>03</span> 蓄電池
+                <button class="info-button" type="button"
+                  data-help-title="蓄電池"
+                  data-help="昼間に太陽光で作った電気をためて、夜や停電時に使うための機器です。電力会社から買う電気を減らせますが、導入費用や将来の交換費用がかかります。">i</button>
+              </legend>
               <label class="toggle-row">
                 <span>
                   <strong>蓄電池プランも比較</strong>
@@ -145,6 +204,7 @@
                       <input id="batteryCost" type="number" min="0" max="20000000" step="10000" value="1500000" />
                       <b>円</b>
                     </span>
+                    <small>蓄電池本体と設置工事を含む導入時の総額です。</small>
                   </label>
                   <label>
                     補助金
@@ -152,14 +212,21 @@
                       <input id="batterySubsidy" type="number" min="0" max="10000000" step="10000" value="300000" />
                       <b>円</b>
                     </span>
+                    <small>蓄電池に使える補助金です。蓄電池の初期費用から差し引きます。</small>
                   </label>
                 </div>
                 <label>
-                  蓄電池ありの自家消費率
+                  <span class="label-title">
+                    蓄電池を使って家で使える割合
+                    <button class="info-button" type="button"
+                      data-help-title="蓄電池ありの自家消費率"
+                      data-help="発電した電気を蓄電池にもためることで、家庭内で使える割合です。実際の割合は、蓄電池の大きさ、昼夜の電気使用、充放電時の損失によって変わります。">i</button>
+                  </span>
                   <div class="range-row">
                     <input id="batteryConsumption" type="range" min="30" max="95" step="1" value="70" />
                     <output id="batteryConsumptionOutput">70%</output>
                   </div>
+                  <small>蓄電池を使って、発電電力を昼間以外にも回して家庭で使える割合です。</small>
                 </label>
                 <div class="field-grid">
                   <label>
@@ -168,6 +235,7 @@
                       <input id="batteryReplacementYear" type="number" min="5" max="30" step="1" value="15" />
                       <b>年目</b>
                     </span>
+                    <small>寿命や容量低下を想定して、蓄電池を交換する年を指定します。</small>
                   </label>
                   <label>
                     交換費用
@@ -175,52 +243,74 @@
                       <input id="batteryReplacementCost" type="number" min="0" max="20000000" step="10000" value="1000000" />
                       <b>円</b>
                     </span>
+                    <small>将来の蓄電池交換に必要と見込む費用です。</small>
                   </label>
                 </div>
               </div>
             </fieldset>
 
             <details>
-              <summary>売電・メンテナンスの詳細設定</summary>
+              <summary>
+                電気を売る価格・機器交換の詳しい設定
+              </summary>
               <div class="details-body">
+                <p class="details-explanation">
+                  売電単価とは、余った電気を電力会社へ1kWh売ったときに受け取る金額です。
+                  買電単価とは別の金額で、期間ごとに変わるため3段階で設定します。
+                </p>
                 <div class="field-grid">
                   <label>
-                    1〜4年目の売電
+                    <span class="label-title">
+                      1〜4年目に電気を売る価格
+                      <button class="info-button" type="button"
+                        data-help-title="売電単価"
+                        data-help="太陽光で作って使い切れなかった電気を、電力会社へ1kWh売ったときに受け取る金額です。電力会社から電気を買うときの「買電単価」とは別の価格です。">i</button>
+                    </span>
                     <span class="input-unit">
                       <input id="fitEarly" type="number" min="0" max="100" step="0.1" value="24" />
-                      <b>円</b>
+                      <b>円/kWh</b>
                     </span>
+                    <small>導入初期4年間に、余剰電力を1kWh売るときの価格です。</small>
                   </label>
                   <label>
-                    5〜10年目の売電
+                    5〜10年目に電気を売る価格
                     <span class="input-unit">
                       <input id="fitLate" type="number" min="0" max="100" step="0.1" value="8.3" />
-                      <b>円</b>
+                      <b>円/kWh</b>
                     </span>
+                    <small>5年目から10年目までの余剰電力の売却価格です。</small>
                   </label>
                 </div>
                 <div class="field-grid">
                   <label>
-                    11年目以降の売電
+                    11年目以降に電気を売る価格
                     <span class="input-unit">
                       <input id="postFit" type="number" min="0" max="100" step="0.1" value="8" />
-                      <b>円</b>
+                      <b>円/kWh</b>
                     </span>
+                    <small>固定価格での買取期間終了後に想定する売却価格です。</small>
                   </label>
                   <label>
-                    パワコン交換年
+                    <span class="label-title">
+                      電気を家庭用に変える機器の交換年
+                      <button class="info-button" type="button"
+                        data-help-title="パワーコンディショナ（パワコン）"
+                        data-help="太陽光パネルが作る電気を、家庭のコンセントで使える電気に変える機器です。「パワコン」とも呼ばれます。パネルより寿命が短いことが多いため、将来の交換費用を計算に含めます。">i</button>
+                    </span>
                     <span class="input-unit">
                       <input id="inverterYear" type="number" min="5" max="30" step="1" value="15" />
                       <b>年目</b>
                     </span>
+                    <small>パネルの直流電力を家庭用の交流へ変換する機器を交換する年です。</small>
                   </label>
                 </div>
                 <label>
-                  パワコン交換費用
+                  電気を家庭用に変える機器の交換費用
                   <span class="input-unit">
                     <input id="inverterCost" type="number" min="0" max="5000000" step="10000" value="200000" />
                     <b>円</b>
                   </span>
+                  <small>パワーコンディショナ本体と交換工事に必要と見込む費用です。</small>
                 </label>
               </div>
             </details>
@@ -244,8 +334,13 @@
           <article class="chart-card">
             <div class="chart-heading">
               <div>
-                <h3>累積支出の推移</h3>
-                <p>初期費用・電気代・売電収入・機器交換を含む概算</p>
+                <h3>
+                  これまでに払う合計金額の推移
+                  <button class="info-button" type="button"
+                    data-help-title="累積支出"
+                    data-help="設置した年からその年までに払った金額をすべて足したものです。初期費用、買った電気代、機器交換費用を足し、電気を売って得た収入を差し引いています。">i</button>
+                </h3>
+                <p>最初にかかる費用・電気代・電気を売った収入・機器交換を含む概算</p>
               </div>
               <div id="legend" class="legend"></div>
             </div>
@@ -257,12 +352,12 @@
 
           <div class="insight-grid">
             <article class="break-even-card">
-              <p class="card-kicker">BREAK-EVEN</p>
+              <p class="card-kicker">元が取れるまで</p>
               <h3 id="breakEvenHeadline"></h3>
               <p id="breakEvenText"></p>
             </article>
             <article class="generation-card">
-              <p class="card-kicker">LOCAL ESTIMATE</p>
+              <p class="card-kicker">地域から計算した発電量</p>
               <h3 id="generationHeadline"></h3>
               <p id="generationText"></p>
             </article>
@@ -310,6 +405,17 @@
         <p class="modal-note">
           端末が画像共有に対応していない場合は、画像を保存して投稿画面で添付してください。
         </p>
+      </section>
+    </div>
+
+    <div id="helpModal" class="modal help-modal" hidden>
+      <div class="modal-backdrop" data-close-help></div>
+      <section class="modal-card help-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+        <button class="modal-close" type="button" data-close-help aria-label="説明を閉じる">×</button>
+        <p class="step-label">ことばの説明</p>
+        <h2 id="helpTitle"></h2>
+        <p id="helpText"></p>
+        <button class="primary-button" type="button" data-close-help>わかりました</button>
       </section>
     </div>
 
