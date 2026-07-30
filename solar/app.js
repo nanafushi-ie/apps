@@ -71,6 +71,49 @@ function getInputs() {
   };
 }
 
+const SOLAR_PRESET = {
+  panelCapacity: 5,
+  solarCost: 1400000,
+  solarSubsidy: 100000,
+  panelDegradation: 0.5,
+  roofDirection: 1,
+  selfConsumption: 30
+};
+
+const BATTERY_PRESET = {
+  batteryCost: 1500000,
+  batterySubsidy: 300000,
+  batteryConsumption: 70,
+  batteryReplacementYear: 15,
+  batteryReplacementCost: 1000000
+};
+
+function setPresetValues(values) {
+  Object.entries(values).forEach(([id, value]) => {
+    $(id).value = String(value);
+  });
+}
+
+function setSectionLocked(sectionId, locked, excludedIds) {
+  const section = $(sectionId);
+  section.classList.toggle("preset-locked", locked);
+  section.querySelectorAll("input, select").forEach((control) => {
+    if (excludedIds.includes(control.id)) return;
+    control.disabled = locked;
+  });
+}
+
+function applyPresetState() {
+  if ($("solarPreset").checked) setPresetValues(SOLAR_PRESET);
+  if ($("batteryPreset").checked) setPresetValues(BATTERY_PRESET);
+  setSectionLocked("solarSettings", $("solarPreset").checked, ["solarPreset"]);
+  setSectionLocked(
+    "batterySettings",
+    $("batteryPreset").checked,
+    ["includeBattery", "batteryPreset"]
+  );
+}
+
 function salePrice(inputs, year) {
   if (year <= 4) return inputs.fitEarly;
   if (year <= 10) return inputs.fitLate;
@@ -325,10 +368,31 @@ function renderInsights(result) {
     $("breakEvenHeadline").textContent = `太陽光のみは約${result.solarCrossing.final.toFixed(1)}年で元が取れる見込みです`;
     $("breakEvenText").textContent = `30年後には太陽光なしと比べて、支払う合計金額が${formatMoney(solarSaving)}少ない試算です。`;
   }
+
+  const batteryInsight = $("batteryInsight");
+  batteryInsight.hidden = !inputs.includeBattery;
+  if (inputs.includeBattery) {
+    const batterySaving = last.noSolar - last.battery;
+    if (result.batteryCrossing.final == null) {
+      $("batteryBreakEvenHeadline").textContent = "30年以内には元が取れない見込みです";
+      $("batteryBreakEvenText").textContent =
+        `30年後に支払う合計金額の差は${formatMoney(Math.abs(batterySaving))}です。経済性とは別に、停電時の電源としての価値もあります。`;
+    } else {
+      $("batteryBreakEvenHeadline").textContent =
+        `約${result.batteryCrossing.final.toFixed(1)}年で元が取れる見込みです`;
+      $("batteryBreakEvenText").textContent =
+        `30年後には太陽光なしと比べて${formatMoney(batterySaving)}少ない試算です。加えて、停電時に使える電気を確保する防災面のメリットがあります。`;
+    }
+  }
+  $("batteryInsight").closest(".insight-grid").classList.toggle(
+    "single-insight",
+    !inputs.includeBattery
+  );
+
   const initialGeneration = inputs.panelCapacity * inputs.regionalYield * inputs.roofFactor;
-  $("generationHeadline").textContent = `${inputs.prefecture}で年間約${yen.format(initialGeneration)}kWh`;
+  $("generationHeadline").textContent = `発電量の参考：${inputs.prefecture}で年間約${yen.format(initialGeneration)}kWh。`;
   $("generationText").textContent =
-    `この地域の代表的な日射条件と屋根の向きから、最初の1年間を概算しました。実際の天候などを考えた目安の範囲は${yen.format(initialGeneration * 0.9)}〜${yen.format(initialGeneration * 1.1)}kWhです。`;
+    `地域の代表的な日射条件と屋根の向きによる概算で、目安の範囲は${yen.format(initialGeneration * 0.9)}〜${yen.format(initialGeneration * 1.1)}kWhです。`;
   $("regionNote").textContent = `地域係数：${yen.format(inputs.regionalYield)} kWh/kW・年（概算）`;
 }
 
@@ -359,49 +423,102 @@ function drawShareImage(result) {
   const h = shareCanvas.height;
   const last = result.data[result.data.length - 1];
   const saving = Math.max(last.noSolar - last.solar, 0);
+  const batterySaving = Math.max(last.noSolar - last.battery, 0);
+
   ctx.fillStyle = "#f7f4e9";
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = "#f5b83d";
   ctx.beginPath();
-  ctx.arc(1080, 75, 170, 0, Math.PI * 2);
+  ctx.arc(1040, 45, 170, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#18312b";
-  ctx.font = '700 22px "Hiragino Sans", sans-serif';
-  ctx.fillText("ひだまり予報", 64, 60);
-  ctx.fillStyle = "#d88e0c";
-  ctx.font = '700 16px "Avenir Next", sans-serif';
-  ctx.fillText("SOLAR COST FORECAST", 64, 98);
-  ctx.fillStyle = "#18312b";
-  ctx.font = '600 50px "Hiragino Mincho ProN", serif';
-  ctx.fillText(`${result.inputs.prefecture}の太陽光シミュレーション`, 64, 165);
 
-  roundedRect(ctx, 64, 210, 420, 145, 20);
+  ctx.fillStyle = "#18312b";
+  ctx.font = '700 30px "Hiragino Sans", sans-serif';
+  ctx.fillText("ひだまりシミュレータ", 70, 72);
+  ctx.fillStyle = "#d88e0c";
+  ctx.font = '700 21px "Avenir Next", sans-serif';
+  ctx.fillText("SOLAR COST FORECAST", 70, 113);
+  ctx.fillStyle = "#18312b";
+  ctx.font = '600 54px "Hiragino Mincho ProN", serif';
+  ctx.fillText(`${result.inputs.prefecture}の太陽光`, 70, 184);
+  ctx.fillText("シミュレーション結果", 70, 248);
+  ctx.fillStyle = "#687a75";
+  ctx.font = '600 24px "Hiragino Sans", sans-serif';
+  ctx.fillText(
+    `パネル ${result.inputs.panelCapacity.toFixed(1)}kW　年間使用量 ${yen.format(result.inputs.usage)}kWh`,
+    70,
+    292
+  );
+
+  roundedRect(ctx, 70, 330, 450, 210, 26);
   ctx.fillStyle = "#164f42";
   ctx.fill();
   ctx.fillStyle = "#8bc8b7";
-  ctx.font = '700 16px "Avenir Next", sans-serif';
-  ctx.fillText("元が取れるまで", 92, 248);
+  ctx.font = '700 24px "Hiragino Sans", sans-serif';
+  ctx.fillText("太陽光のみ", 104, 377);
   ctx.fillStyle = "#fff";
-  ctx.font = '700 36px "Hiragino Sans", sans-serif';
-  ctx.fillText(formatBreakEven(result.solarCrossing.final), 92, 302);
+  ctx.font = '700 49px "Hiragino Sans", sans-serif';
+  ctx.fillText(formatBreakEven(result.solarCrossing.final), 104, 449);
+  ctx.font = '600 23px "Hiragino Sans", sans-serif';
+  ctx.fillText("で元が取れる見込み", 104, 499);
 
-  roundedRect(ctx, 64, 372, 420, 145, 20);
+  roundedRect(ctx, 560, 330, 450, 210, 26);
+  ctx.fillStyle = result.inputs.includeBattery ? "#e2f0eb" : "#fff";
+  ctx.fill();
+  ctx.strokeStyle = result.inputs.includeBattery ? "#9fc8ba" : "#dcded6";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = result.inputs.includeBattery ? "#24745f" : "#687a75";
+  ctx.font = '700 24px "Hiragino Sans", sans-serif';
+  ctx.fillText(result.inputs.includeBattery ? "太陽光＋蓄電池" : "30年後の節約額", 594, 377);
+  ctx.fillStyle = "#18312b";
+  ctx.font = '700 49px "Hiragino Sans", sans-serif';
+  ctx.fillText(
+    result.inputs.includeBattery
+      ? formatBreakEven(result.batteryCrossing.final)
+      : `約${yen.format(saving / 10000)}万円`,
+    594,
+    449
+  );
+  ctx.font = '600 23px "Hiragino Sans", sans-serif';
+  ctx.fillText(
+    result.inputs.includeBattery ? "で元が取れる見込み" : "太陽光なしとの比較",
+    594,
+    499
+  );
+
+  roundedRect(ctx, 70, 575, 940, 150, 24);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.strokeStyle = "#dcded6";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#687a75";
+  ctx.font = '700 25px "Hiragino Sans", sans-serif';
+  ctx.fillText("30年後に減らせる金額", 105, 625);
+  ctx.fillStyle = "#18312b";
+  ctx.font = '700 50px "Hiragino Sans", sans-serif';
+  ctx.fillText(`太陽光のみ 約${yen.format(saving / 10000)}万円`, 105, 689);
+  if (result.inputs.includeBattery) {
+    ctx.fillStyle = "#24745f";
+    ctx.font = '700 27px "Hiragino Sans", sans-serif';
+    ctx.fillText(`蓄電池あり 約${yen.format(batterySaving / 10000)}万円`, 650, 681);
+  }
+
+  roundedRect(ctx, 70, 760, 940, 430, 28);
   ctx.fillStyle = "#fff";
   ctx.fill();
   ctx.strokeStyle = "#dcded6";
   ctx.stroke();
-  ctx.fillStyle = "#687a75";
-  ctx.font = '700 16px "Hiragino Sans", sans-serif';
-  ctx.fillText("30年後の推定節約額", 92, 412);
   ctx.fillStyle = "#18312b";
-  ctx.font = '700 36px "Hiragino Sans", sans-serif';
-  ctx.fillText(`約${yen.format(saving / 10000)}万円`, 92, 468);
+  ctx.font = '700 28px "Hiragino Sans", sans-serif';
+  ctx.fillText("30年間で支払う合計金額", 105, 812);
 
-  const left = 550, top = 230, right = 1130, bottom = 490;
+  const left = 120, top = 855, right = 960, bottom = 1095;
   const keys = result.inputs.includeBattery ? ["noSolar", "solar", "battery"] : ["noSolar", "solar"];
   const maxValue = Math.max(...result.data.flatMap((row) => keys.map((key) => row[key]))) * 1.05;
   ctx.strokeStyle = "#dcded6";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 2;
   for (let i = 0; i <= 4; i++) {
     const yy = bottom - ((bottom - top) / 4) * i;
     ctx.beginPath();
@@ -417,7 +534,7 @@ function drawShareImage(result) {
     ...(result.inputs.includeBattery ? [["battery", COLORS.battery]] : [])
   ].forEach(([key, color]) => {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 7;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -427,27 +544,33 @@ function drawShareImage(result) {
     });
     ctx.stroke();
   });
+
   ctx.fillStyle = "#687a75";
-  ctx.font = '500 16px "Hiragino Sans", sans-serif';
-  ctx.fillText(`パネル ${result.inputs.panelCapacity.toFixed(1)}kW　年間使用量 ${yen.format(result.inputs.usage)}kWh`, 550, 190);
-  ctx.font = '500 14px "Hiragino Sans", sans-serif';
-  ctx.fillText("太陽光なし", 550, 540);
-  ctx.fillStyle = COLORS.none; ctx.fillRect(650, 528, 28, 5);
-  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光のみ", 710, 540);
-  ctx.fillStyle = COLORS.solar; ctx.fillRect(810, 528, 28, 5);
+  ctx.font = '600 21px "Hiragino Sans", sans-serif';
+  ctx.fillText("太陽光なし", 115, 1148);
+  ctx.fillStyle = COLORS.none; ctx.fillRect(245, 1136, 38, 7);
+  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光のみ", 345, 1148);
+  ctx.fillStyle = COLORS.solar; ctx.fillRect(475, 1136, 38, 7);
   if (result.inputs.includeBattery) {
-    ctx.fillStyle = "#687a75"; ctx.fillText("蓄電池あり", 870, 540);
-    ctx.fillStyle = COLORS.battery; ctx.fillRect(966, 528, 28, 5);
+    ctx.fillStyle = "#687a75"; ctx.fillText("蓄電池あり", 575, 1148);
+    ctx.fillStyle = COLORS.battery; ctx.fillRect(705, 1136, 38, 7);
   }
+
   ctx.fillStyle = "#687a75";
-  ctx.font = '500 13px "Hiragino Sans", sans-serif';
-  ctx.fillText("※入力条件と地域代表値に基づく概算です", 64, 585);
+  ctx.font = '500 20px "Hiragino Sans", sans-serif';
+  ctx.fillText("※入力条件と地域の代表値に基づく概算です", 70, 1260);
   ctx.fillStyle = "#24745f";
-  ctx.font = '700 16px "Hiragino Sans", sans-serif';
-  ctx.fillText("#ななふしの家", 1000, 585);
+  ctx.font = '700 25px "Hiragino Sans", sans-serif';
+  ctx.textAlign = "right";
+  ctx.fillText("#ななふしの家", 1010, 1260);
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#18312b";
+  ctx.font = '700 24px "Hiragino Sans", sans-serif';
+  ctx.fillText("ひだまりシミュレータで試してみる", 70, 1312);
 }
 
 function update() {
+  applyPresetState();
   latest = calculate();
   $("priceGrowthOutput").textContent = `${numberValue("priceGrowth").toFixed(1)}%`;
   $("selfConsumptionOutput").textContent = `${numberValue("selfConsumption")}%`;
@@ -557,6 +680,7 @@ window.addEventListener("resize", () => latest && renderChart(latest));
 $("resetButton").addEventListener("click", () => {
   form.reset();
   $("prefecture").value = "宮城県";
+  applyPresetState();
   update();
 });
 $("shareHeader").addEventListener("click", openShareModal);
