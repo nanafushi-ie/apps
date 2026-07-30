@@ -57,10 +57,66 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
-        const UNIT_SIZE_MM = 250;
-        const GRID_PIXELS = 15;   
-        const SCALE_FACTOR = 0.25; 
-        const EXPORT_MARGIN_GRID = 2; // 0.5m
+        const LEGACY_UNIT_SIZE_MM = 250;
+        const GRID_PIXELS = 15;
+        const CANVAS_GRID_OFFSET_PX = 6000;
+        const EXPORT_MARGIN_GRID = 2;
+        const MODULE_OPTIONS = {
+            tatami: { key: 'tatami', label: '畳モジュール', unitSizeMm: 455, description: '1目盛り = 455mm' },
+            meter: { key: 'meter', label: 'メーターモジュール', unitSizeMm: 500, description: '1目盛り = 500mm' },
+            legacy: { key: 'legacy', label: '従来形式', unitSizeMm: LEGACY_UNIT_SIZE_MM, description: '1目盛り = 250mm' }
+        };
+        const PASSWORD_SALT_BASE64 = 'rMwBf8znbsWR0N2LKb1+og==';
+        const PASSWORD_HASH_BASE64 = 'VqRUuiLZ+ZiwwthyeO8JzDwCziBNOwnqoX5CrWifAsI=';
+        const PASSWORD_ITERATIONS = 310000;
+        const AUTH_COOKIE_NAME = 'madori_authenticated_v2';
+        const AUTH_COOKIE_VALUE = 'pbkdf2-v1';
+        const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+        const hasAuthCookie = () => document.cookie
+            .split(';')
+            .map(cookie => cookie.trim())
+            .some(cookie => cookie === `${AUTH_COOKIE_NAME}=${AUTH_COOKIE_VALUE}`);
+
+        const saveAuthCookie = () => {
+            const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = `${AUTH_COOKIE_NAME}=${AUTH_COOKIE_VALUE}; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+        };
+
+        const decodeBase64 = (value) => Uint8Array.from(atob(value), char => char.charCodeAt(0));
+
+        const verifyPassword = async (password) => {
+            if (!window.crypto?.subtle) {
+                throw new Error('このブラウザではパスワード認証を利用できません。');
+            }
+
+            const passwordKey = await window.crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(password),
+                'PBKDF2',
+                false,
+                ['deriveBits']
+            );
+            const derivedBits = await window.crypto.subtle.deriveBits(
+                {
+                    name: 'PBKDF2',
+                    salt: decodeBase64(PASSWORD_SALT_BASE64),
+                    iterations: PASSWORD_ITERATIONS,
+                    hash: 'SHA-256'
+                },
+                passwordKey,
+                256
+            );
+            const actual = new Uint8Array(derivedBits);
+            const expected = decodeBase64(PASSWORD_HASH_BASE64);
+
+            if (actual.length !== expected.length) return false;
+            let difference = 0;
+            for (let i = 0; i < actual.length; i += 1) {
+                difference |= actual[i] ^ expected[i];
+            }
+            return difference === 0;
+        };
 
         // --- 更新されたプリセットデータ ---
         const PRESET_PLAN = {
@@ -128,7 +184,7 @@
             { label: 'カップボード', defaultW: 8, defaultH: 2, color: 'bg-orange-200 border-orange-400', type: 'furniture', icon: 'Layout' },
         ];
 
-        const DimensionInput = ({ label, value, onCommit, large = false }) => {
+        const DimensionInput = ({ label, value, onCommit, stepMm = LEGACY_UNIT_SIZE_MM, large = false }) => {
             const [draft, setDraft] = useState(String(value));
 
             useEffect(() => {
@@ -142,7 +198,7 @@
             };
 
             const stepBy = (delta) => {
-                const nextValue = Math.max(UNIT_SIZE_MM, value + delta);
+                const nextValue = Math.max(stepMm, value + delta);
                 setDraft(String(nextValue));
                 onCommit(nextValue);
             };
@@ -166,8 +222,8 @@
                             className={`dimension-input min-w-0 flex-1 border-0 bg-white px-3 outline-none font-bold ${large ? 'py-3 text-base sm:text-lg' : 'py-2 text-base'}`}
                         />
                         <div className="flex flex-col border-l border-slate-200">
-                            <button type="button" onClick={() => stepBy(UNIT_SIZE_MM)} className="w-10 flex-1 min-h-[24px] bg-slate-50 text-slate-700 font-black leading-none active:bg-indigo-50">+</button>
-                            <button type="button" onClick={() => stepBy(-UNIT_SIZE_MM)} className="w-10 flex-1 min-h-[24px] bg-slate-50 text-slate-700 font-black leading-none border-t border-slate-200 active:bg-indigo-50">-</button>
+                            <button type="button" onClick={() => stepBy(stepMm)} className="w-10 flex-1 min-h-[24px] bg-slate-50 text-slate-700 font-black leading-none active:bg-indigo-50">+</button>
+                            <button type="button" onClick={() => stepBy(-stepMm)} className="w-10 flex-1 min-h-[24px] bg-slate-50 text-slate-700 font-black leading-none border-t border-slate-200 active:bg-indigo-50">-</button>
                         </div>
                     </div>
                 </div>
@@ -197,10 +253,90 @@
             );
         };
 
+        const PasswordGate = ({ children }) => {
+            const [isAuthenticated, setIsAuthenticated] = useState(hasAuthCookie);
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [isChecking, setIsChecking] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsChecking(true);
+                setError('');
+
+                try {
+                    if (await verifyPassword(password)) {
+                        saveAuthCookie();
+                        setIsAuthenticated(true);
+                        setPassword('');
+                        return;
+                    }
+                    setError('パスワードが正しくありません。');
+                } catch (authError) {
+                    setError(authError.message || 'パスワードを確認できませんでした。');
+                } finally {
+                    setIsChecking(false);
+                }
+            };
+
+            if (isAuthenticated) return children;
+
+            return (
+                <div className="app-shell flex items-center justify-center bg-slate-100 p-4 font-sans text-slate-900">
+                    <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-7 shadow-2xl sm:p-8">
+                        <div className="mb-7 flex flex-col items-center text-center">
+                            <div className="mb-4 rounded-2xl bg-indigo-600 p-3 text-white shadow-lg">
+                                <SvgIcon name="Home" size={28} />
+                            </div>
+                            <h1 className="text-xl font-black">間取りスケッチャー</h1>
+                            <p className="mt-2 text-xs font-bold text-slate-500">閲覧するにはパスワードを入力してください</p>
+                        </div>
+
+                        <label htmlFor="access-password" className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            パスワード
+                        </label>
+                        <input
+                            id="access-password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                if (error) setError('');
+                            }}
+                            autoComplete="current-password"
+                            autoFocus
+                            disabled={isChecking}
+                            aria-invalid={Boolean(error)}
+                            aria-describedby={error ? 'password-error' : undefined}
+                            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base font-bold outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                        />
+
+                        {error && (
+                            <p id="password-error" role="alert" className="mt-2 text-xs font-bold text-red-500">
+                                {error}
+                            </p>
+                        )}
+
+                        <button type="submit" disabled={isChecking || !password} className="mt-5 w-full rounded-xl bg-indigo-600 py-3.5 text-sm font-black text-white shadow-lg transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
+                            {isChecking ? '確認中…' : '開く'}
+                        </button>
+                        <p className="mt-4 text-center text-[10px] font-bold text-slate-400">
+                            認証状態はこのブラウザに保存されます
+                        </p>
+                    </form>
+                </div>
+            );
+        };
+
         const App = () => {
             const [elements, setElements] = useState([]);
             const [selectedId, setSelectedId] = useState(null);
-            const [baseDraft, setBaseDraft] = useState({ w: 44, h: 28 });
+            const [moduleKey, setModuleKey] = useState('tatami');
+            const [unitSizeMm, setUnitSizeMm] = useState(MODULE_OPTIONS.tatami.unitSizeMm);
+            const [baseDraft, setBaseDraft] = useState({
+                w: Math.round(9100 / MODULE_OPTIONS.tatami.unitSizeMm),
+                h: Math.round(9100 / MODULE_OPTIONS.tatami.unitSizeMm)
+            });
             const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
             const [interactionMode, setInteractionMode] = useState(null);
             const [showOpenModal, setShowOpenOptions] = useState(false);
@@ -212,15 +348,32 @@
                 startX: 0, startY: 0, initialX: 0, initialY: 0, initialW: 0, initialH: 0, initialViewX: 0, initialViewY: 0, startDist: 0, initialScale: 1, linkedFurniture: []
             });
 
-            const mmToGrid = (mm) => Math.max(1, Math.round((Number(mm) || 0) / UNIT_SIZE_MM));
-            const gridToMm = (grid) => (Number(grid) || 0) * UNIT_SIZE_MM;
+            const mmToGrid = (mm) => Math.max(1, Math.round((Number(mm) || 0) / unitSizeMm));
+            const gridToMm = (grid) => Math.round((Number(grid) || 0) * unitSizeMm);
+            const legacyGridToCurrent = (grid) => Math.max(1, Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm));
+            const legacyPositionToCurrent = (grid) => Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm);
+            const gridPixels = GRID_PIXELS * unitSizeMm / LEGACY_UNIT_SIZE_MM;
+            const snapToGrid = (value) => Math.round(value);
 
             const calculateArea = (w, h) => {
-                const sqm = (w * SCALE_FACTOR * h * SCALE_FACTOR).toFixed(2);
+                const unitMeters = unitSizeMm / 1000;
+                const sqm = (w * unitMeters * h * unitMeters).toFixed(2);
                 const tatami = (sqm / 1.62).toFixed(1);
-                const mWidth = (w * SCALE_FACTOR).toFixed(2);
-                const mHeight = (h * SCALE_FACTOR).toFixed(2);
-                return { sqm, tatami, mWidth, mHeight };
+                const tsubo = (sqm / 3.305785).toFixed(2);
+                const mWidth = (w * unitMeters).toFixed(2);
+                const mHeight = (h * unitMeters).toFixed(2);
+                return { sqm, tatami, tsubo, mWidth, mHeight };
+            };
+
+            const selectModule = (nextKey) => {
+                const nextModule = MODULE_OPTIONS[nextKey];
+                if (!nextModule || elements.length > 0) return;
+                setBaseDraft(current => ({
+                    w: Math.max(1, Math.round(current.w * unitSizeMm / nextModule.unitSizeMm)),
+                    h: Math.max(1, Math.round(current.h * unitSizeMm / nextModule.unitSizeMm))
+                }));
+                setModuleKey(nextModule.key);
+                setUnitSizeMm(nextModule.unitSizeMm);
             };
 
             const normalizeRotation = (rotation) => ((Number(rotation) || 0) % 360 + 360) % 360;
@@ -290,7 +443,7 @@
 
             const exportProject = () => {
                 if (elements.length === 0) return;
-                const data = JSON.stringify({ elements, baseDraft, timestamp: new Date().toISOString() }, null, 2);
+                const data = JSON.stringify({ elements, baseDraft, moduleKey, unitSizeMm, timestamp: new Date().toISOString() }, null, 2);
                 const blob = new Blob([data], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -302,8 +455,12 @@
 
             const loadProjectData = (parsed) => {
                 if (parsed.elements) {
+                    const loadedUnitSizeMm = Number(parsed.unitSizeMm) || LEGACY_UNIT_SIZE_MM;
+                    const loadedModule = Object.values(MODULE_OPTIONS).find(option => option.unitSizeMm === loadedUnitSizeMm);
                     setElements(parsed.elements);
                     if (parsed.baseDraft) setBaseDraft(parsed.baseDraft);
+                    setUnitSizeMm(loadedUnitSizeMm);
+                    setModuleKey(parsed.moduleKey || loadedModule?.key || 'legacy');
                     setSelectedId(null);
                     setTimeout(resetView, 100);
                 }
@@ -338,21 +495,21 @@
                 const padding = 100;
                 const availW = mainRef.current.clientWidth - padding;
                 const availH = mainRef.current.clientHeight - padding;
-                const contentW = (Number(base.w) || 1) * GRID_PIXELS;
-                const contentH = (Number(base.h) || 1) * GRID_PIXELS;
+                const contentW = (Number(base.w) || 1) * gridPixels;
+                const contentH = (Number(base.h) || 1) * gridPixels;
                 const newScale = Math.min(availW / contentW, availH / contentH, 1.2);
                 setView({
                     x: (mainRef.current.clientWidth - contentW * newScale) / 2,
                     y: (mainRef.current.clientHeight - contentH * newScale) / 2,
                     scale: isFinite(newScale) ? newScale : 1
                 });
-            }, [elements]);
+            }, [elements, gridPixels]);
 
             const addElement = (proto) => {
                 const id = Date.now();
                 const newEl = {
                     id, label: proto.label, x: 4, y: 4, 
-                    w: Number(proto.defaultW) || 4, h: Number(proto.defaultH) || 4,
+                    w: legacyGridToCurrent(proto.defaultW || 4), h: legacyGridToCurrent(proto.defaultH || 4),
                     color: proto.color, type: proto.type, rotation: 0, isFixed: proto.type === 'base'
                 };
 
@@ -366,8 +523,11 @@
                         ];
                         return { 
                             ...r, id: id + i + 1, 
-                            x: coords[i]?.x ?? 4, y: coords[i]?.y ?? 4, 
-                            w: Number(r.defaultW), h: Number(r.defaultH), rotation: 0 
+                            x: legacyPositionToCurrent(coords[i]?.x ?? 4),
+                            y: legacyPositionToCurrent(coords[i]?.y ?? 4),
+                            w: legacyGridToCurrent(r.defaultW),
+                            h: legacyGridToCurrent(r.defaultH),
+                            rotation: 0
                         };
                     });
                     setElements([{...newEl, x: 0, y: 0, w: Number(baseDraft.w), h: Number(baseDraft.h)}, ...initialRooms]);
@@ -455,25 +615,37 @@
                         y: interactionRef.current.initialViewY + (clientY - interactionRef.current.startY)
                     }));
                 } else if (interactionMode === 'move' || interactionMode === 'resize') {
-                    const dx_grid = (clientX - interactionRef.current.startX) / (view.scale * GRID_PIXELS);
-                    const dy_grid = (clientY - interactionRef.current.startY) / (view.scale * GRID_PIXELS);
+                    const dx_grid = (clientX - interactionRef.current.startX) / (view.scale * gridPixels);
+                    const dy_grid = (clientY - interactionRef.current.startY) / (view.scale * gridPixels);
 
                     setElements(prev => prev.map(el => {
                         if (interactionMode === 'move') {
                             if (el.id === selectedId) {
-                                return { ...el, x: Math.round(interactionRef.current.initialX + dx_grid), y: Math.round(interactionRef.current.initialY + dy_grid) };
+                                return {
+                                    ...el,
+                                    x: snapToGrid(interactionRef.current.initialX + dx_grid),
+                                    y: snapToGrid(interactionRef.current.initialY + dy_grid)
+                                };
                             }
                             const linked = interactionRef.current.linkedFurniture.find(furniture => furniture.id === el.id);
                             if (linked) {
-                                return { ...el, x: Math.round(linked.initialX + dx_grid), y: Math.round(linked.initialY + dy_grid) };
+                                return {
+                                    ...el,
+                                    x: snapToGrid(linked.initialX + dx_grid),
+                                    y: snapToGrid(linked.initialY + dy_grid)
+                                };
                             }
                             return el;
                         }
                         if (el.id !== selectedId) return el;
-                        return { ...el, w: Math.max(1, Math.round(interactionRef.current.initialW + dx_grid)), h: Math.max(1, Math.round(interactionRef.current.initialH + dy_grid)) };
+                        return {
+                            ...el,
+                            w: Math.max(1, snapToGrid(interactionRef.current.initialW + dx_grid)),
+                            h: Math.max(1, snapToGrid(interactionRef.current.initialH + dy_grid))
+                        };
                     }));
                 }
-            }, [interactionMode, selectedId, view.scale]);
+            }, [interactionMode, selectedId, view.scale, gridPixels]);
 
             const onPointerUp = (e) => {
                 setInteractionMode(null);
@@ -483,9 +655,9 @@
             const exportPNG = async () => {
                 if (!baseEl || !window.html2canvas) return;
 
-                const marginPx = EXPORT_MARGIN_GRID * GRID_PIXELS;
-                const exportWidth = (Number(baseEl.w) + EXPORT_MARGIN_GRID * 2) * GRID_PIXELS;
-                const exportHeight = (Number(baseEl.h) + EXPORT_MARGIN_GRID * 2) * GRID_PIXELS;
+                const marginPx = EXPORT_MARGIN_GRID * gridPixels;
+                const exportWidth = (Number(baseEl.w) + EXPORT_MARGIN_GRID * 2) * gridPixels;
+                const exportHeight = (Number(baseEl.h) + EXPORT_MARGIN_GRID * 2) * gridPixels;
                 const exportRoot = document.createElement('div');
                 exportRoot.style.position = 'fixed';
                 exportRoot.style.left = '0';
@@ -500,7 +672,7 @@
                     linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                     linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                 `;
-                exportRoot.style.backgroundSize = `${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px`;
+                exportRoot.style.backgroundSize = `${gridPixels}px ${gridPixels}px, ${gridPixels}px ${gridPixels}px, ${gridPixels * 2}px ${gridPixels * 2}px, ${gridPixels * 2}px ${gridPixels * 2}px`;
                 exportRoot.style.backgroundPosition = `${marginPx}px ${marginPx}px`;
 
                 const exportContent = document.createElement('div');
@@ -571,13 +743,14 @@
 
             const selectedEl = elements.find(e => e.id === selectedId);
             const baseEl = elements.find(e => e.type === 'base');
+            const baseArea = calculateArea(baseEl?.w ?? baseDraft.w, baseEl?.h ?? baseDraft.h);
 
             // CAD方式: 左上角を固定して回転
             const getElementStyle = (el) => {
-                const x = (Number(el.x) || 0) * GRID_PIXELS;
-                const y = (Number(el.y) || 0) * GRID_PIXELS;
-                const w = (Number(el.w) || 1) * GRID_PIXELS;
-                const h = (Number(el.h) || 1) * GRID_PIXELS;
+                const x = (Number(el.x) || 0) * gridPixels;
+                const y = (Number(el.y) || 0) * gridPixels;
+                const w = (Number(el.w) || 1) * gridPixels;
+                const h = (Number(el.h) || 1) * gridPixels;
                 
                 let transform = `rotate(${el.rotation}deg)`;
                 if (el.rotation === 90) transform += ` translateY(-100%)`;
@@ -653,8 +826,33 @@
                                 <section className="space-y-4 pt-2">
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">家のサイズを決定</h3>
                                     <div className="space-y-4 text-left">
-                                        <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} onCommit={(mm) => setBaseDraft({...baseDraft, w: mmToGrid(mm)})} large />
-                                        <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} onCommit={(mm) => setBaseDraft({...baseDraft, h: mmToGrid(mm)})} large />
+                                        <div>
+                                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">寸法モジュール</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {['tatami', 'meter'].map(key => {
+                                                    const option = MODULE_OPTIONS[key];
+                                                    const isActive = moduleKey === key;
+                                                    return (
+                                                        <button
+                                                            key={key}
+                                                            type="button"
+                                                            onClick={() => selectModule(key)}
+                                                            className={`rounded-xl border-2 p-3 text-left transition-all ${isActive ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-slate-100 bg-white text-slate-500 hover:border-indigo-200'}`}
+                                                        >
+                                                            <span className="block text-[11px] font-black">{option.label}</span>
+                                                            <span className="mt-1 block text-[9px] font-bold opacity-70">{option.description}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} stepMm={unitSizeMm} onCommit={(mm) => setBaseDraft({...baseDraft, w: mmToGrid(mm)})} large />
+                                        <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} stepMm={unitSizeMm} onCommit={(mm) => setBaseDraft({...baseDraft, h: mmToGrid(mm)})} large />
+                                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-center shadow-inner" aria-live="polite">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">家の外形面積</p>
+                                            <p className="mt-1 text-2xl font-black text-indigo-700">{baseArea.tsubo}<span className="ml-1 text-sm">坪</span></p>
+                                            <p className="mt-1 text-[10px] font-bold text-slate-500">{baseArea.sqm}㎡（{baseArea.mWidth}m × {baseArea.mHeight}m）</p>
+                                        </div>
                                         <button onClick={() => addElement({ label: '家の外形', defaultW: baseDraft.w, defaultH: baseDraft.h, color: 'bg-white/50 border-slate-300 border-2 border-dashed', type: 'base' })} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase shadow-xl hover:bg-indigo-700 transition-all mt-2 tracking-widest">確定して配置</button>
                                     </div>
                                 </section>
@@ -663,14 +861,20 @@
                                     <section className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-inner">
                                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><SvgIcon name="Settings" size={14}/> {selectedId && selectedEl.type !== 'base' ? 'パーツ微調整' : '家の外寸微調整'}</h3>
                                         <div className="grid grid-cols-1 gap-2">
-                                            <DimensionInput label="幅 (mm)" value={selectedId ? gridToMm(selectedEl.w) : gridToMm(baseEl.w)} onCommit={(mm) => {
+                                            <DimensionInput label="幅 (mm)" value={selectedId ? gridToMm(selectedEl.w) : gridToMm(baseEl.w)} stepMm={unitSizeMm} onCommit={(mm) => {
                                                 const targetId = selectedId || baseEl.id;
                                                 setElements(prev => prev.map(el => el.id === targetId ? {...el, w: mmToGrid(mm)} : el));
                                             }} />
-                                            <DimensionInput label="奥行 (mm)" value={selectedId ? gridToMm(selectedEl.h) : gridToMm(baseEl.h)} onCommit={(mm) => {
+                                            <DimensionInput label="奥行 (mm)" value={selectedId ? gridToMm(selectedEl.h) : gridToMm(baseEl.h)} stepMm={unitSizeMm} onCommit={(mm) => {
                                                 const targetId = selectedId || baseEl.id;
                                                 setElements(prev => prev.map(el => el.id === targetId ? {...el, h: mmToGrid(mm)} : el));
                                             }} />
+                                        </div>
+                                        <p className="text-[9px] font-bold text-slate-400">{MODULE_OPTIONS[moduleKey]?.label || 'カスタム'}：1目盛り {unitSizeMm}mm</p>
+                                        <div className="rounded-xl border border-indigo-100 bg-white p-3 text-center" aria-live="polite">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">家の外形面積</p>
+                                            <p className="mt-1 text-xl font-black text-indigo-700">{baseArea.tsubo}<span className="ml-1 text-xs">坪</span></p>
+                                            <p className="mt-1 text-[9px] font-bold text-slate-400">{baseArea.sqm}㎡</p>
                                         </div>
                                     </section>
                                     <section className="space-y-4">
@@ -714,7 +918,8 @@
                                             linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                                             linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                                         `,
-                                        backgroundSize: `${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px`
+                                        backgroundSize: `${gridPixels}px ${gridPixels}px, ${gridPixels}px ${gridPixels}px, ${gridPixels * 2}px ${gridPixels * 2}px, ${gridPixels * 2}px ${gridPixels * 2}px`,
+                                        backgroundPosition: `${CANVAS_GRID_OFFSET_PX}px ${CANVAS_GRID_OFFSET_PX}px`
                                     }} />
                                     
                                     <div className="relative">
@@ -787,7 +992,11 @@
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(
+            <PasswordGate>
+                <App />
+            </PasswordGate>
+        );
     </script>
 </body>
 </html>
