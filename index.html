@@ -58,12 +58,12 @@
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
         const LEGACY_UNIT_SIZE_MM = 250;
-        const GRID_PIXELS = 15;   
+        const GRID_PIXELS = 15;
         const EXPORT_MARGIN_GRID = 2;
         const MODULE_OPTIONS = {
-            tatami: { key: 'tatami', label: '畳モジュール', unitSizeMm: 910, description: '1単位 = 910mm' },
-            meter: { key: 'meter', label: 'メーターモジュール', unitSizeMm: 1000, description: '1単位 = 1000mm' },
-            legacy: { key: 'legacy', label: '従来形式', unitSizeMm: LEGACY_UNIT_SIZE_MM, description: '1単位 = 250mm' }
+            tatami: { key: 'tatami', label: '畳モジュール', unitSizeMm: 455, description: '1目盛り = 455mm' },
+            meter: { key: 'meter', label: 'メーターモジュール', unitSizeMm: 500, description: '1目盛り = 500mm' },
+            legacy: { key: 'legacy', label: '従来形式', unitSizeMm: LEGACY_UNIT_SIZE_MM, description: '1目盛り = 250mm' }
         };
         const PASSWORD_SALT_BASE64 = 'rMwBf8znbsWR0N2LKb1+og==';
         const PASSWORD_HASH_BASE64 = 'VqRUuiLZ+ZiwwthyeO8JzDwCziBNOwnqoX5CrWifAsI=';
@@ -351,6 +351,7 @@
             const gridToMm = (grid) => Math.round((Number(grid) || 0) * unitSizeMm);
             const legacyGridToCurrent = (grid) => Math.max(1, Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm));
             const legacyPositionToCurrent = (grid) => Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm);
+            const gridPixels = GRID_PIXELS * unitSizeMm / LEGACY_UNIT_SIZE_MM;
 
             const calculateArea = (w, h) => {
                 const unitMeters = unitSizeMm / 1000;
@@ -492,15 +493,15 @@
                 const padding = 100;
                 const availW = mainRef.current.clientWidth - padding;
                 const availH = mainRef.current.clientHeight - padding;
-                const contentW = (Number(base.w) || 1) * GRID_PIXELS;
-                const contentH = (Number(base.h) || 1) * GRID_PIXELS;
+                const contentW = (Number(base.w) || 1) * gridPixels;
+                const contentH = (Number(base.h) || 1) * gridPixels;
                 const newScale = Math.min(availW / contentW, availH / contentH, 1.2);
                 setView({
                     x: (mainRef.current.clientWidth - contentW * newScale) / 2,
                     y: (mainRef.current.clientHeight - contentH * newScale) / 2,
                     scale: isFinite(newScale) ? newScale : 1
                 });
-            }, [elements]);
+            }, [elements, gridPixels]);
 
             const addElement = (proto) => {
                 const id = Date.now();
@@ -612,8 +613,8 @@
                         y: interactionRef.current.initialViewY + (clientY - interactionRef.current.startY)
                     }));
                 } else if (interactionMode === 'move' || interactionMode === 'resize') {
-                    const dx_grid = (clientX - interactionRef.current.startX) / (view.scale * GRID_PIXELS);
-                    const dy_grid = (clientY - interactionRef.current.startY) / (view.scale * GRID_PIXELS);
+                    const dx_grid = (clientX - interactionRef.current.startX) / (view.scale * gridPixels);
+                    const dy_grid = (clientY - interactionRef.current.startY) / (view.scale * gridPixels);
 
                     setElements(prev => prev.map(el => {
                         if (interactionMode === 'move') {
@@ -630,7 +631,7 @@
                         return { ...el, w: Math.max(1, Math.round(interactionRef.current.initialW + dx_grid)), h: Math.max(1, Math.round(interactionRef.current.initialH + dy_grid)) };
                     }));
                 }
-            }, [interactionMode, selectedId, view.scale]);
+            }, [interactionMode, selectedId, view.scale, gridPixels]);
 
             const onPointerUp = (e) => {
                 setInteractionMode(null);
@@ -640,9 +641,9 @@
             const exportPNG = async () => {
                 if (!baseEl || !window.html2canvas) return;
 
-                const marginPx = EXPORT_MARGIN_GRID * GRID_PIXELS;
-                const exportWidth = (Number(baseEl.w) + EXPORT_MARGIN_GRID * 2) * GRID_PIXELS;
-                const exportHeight = (Number(baseEl.h) + EXPORT_MARGIN_GRID * 2) * GRID_PIXELS;
+                const marginPx = EXPORT_MARGIN_GRID * gridPixels;
+                const exportWidth = (Number(baseEl.w) + EXPORT_MARGIN_GRID * 2) * gridPixels;
+                const exportHeight = (Number(baseEl.h) + EXPORT_MARGIN_GRID * 2) * gridPixels;
                 const exportRoot = document.createElement('div');
                 exportRoot.style.position = 'fixed';
                 exportRoot.style.left = '0';
@@ -657,7 +658,7 @@
                     linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                     linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                 `;
-                exportRoot.style.backgroundSize = `${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px`;
+                exportRoot.style.backgroundSize = `${gridPixels}px ${gridPixels}px, ${gridPixels}px ${gridPixels}px, ${gridPixels * 2}px ${gridPixels * 2}px, ${gridPixels * 2}px ${gridPixels * 2}px`;
                 exportRoot.style.backgroundPosition = `${marginPx}px ${marginPx}px`;
 
                 const exportContent = document.createElement('div');
@@ -732,10 +733,10 @@
 
             // CAD方式: 左上角を固定して回転
             const getElementStyle = (el) => {
-                const x = (Number(el.x) || 0) * GRID_PIXELS;
-                const y = (Number(el.y) || 0) * GRID_PIXELS;
-                const w = (Number(el.w) || 1) * GRID_PIXELS;
-                const h = (Number(el.h) || 1) * GRID_PIXELS;
+                const x = (Number(el.x) || 0) * gridPixels;
+                const y = (Number(el.y) || 0) * gridPixels;
+                const w = (Number(el.w) || 1) * gridPixels;
+                const h = (Number(el.h) || 1) * gridPixels;
                 
                 let transform = `rotate(${el.rotation}deg)`;
                 if (el.rotation === 90) transform += ` translateY(-100%)`;
@@ -855,7 +856,7 @@
                                                 setElements(prev => prev.map(el => el.id === targetId ? {...el, h: mmToGrid(mm)} : el));
                                             }} />
                                         </div>
-                                        <p className="text-[9px] font-bold text-slate-400">{MODULE_OPTIONS[moduleKey]?.label || 'カスタム'}：1単位 {unitSizeMm}mm</p>
+                                        <p className="text-[9px] font-bold text-slate-400">{MODULE_OPTIONS[moduleKey]?.label || 'カスタム'}：1目盛り {unitSizeMm}mm</p>
                                         <div className="rounded-xl border border-indigo-100 bg-white p-3 text-center" aria-live="polite">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">家の外形面積</p>
                                             <p className="mt-1 text-xl font-black text-indigo-700">{baseArea.tsubo}<span className="ml-1 text-xs">坪</span></p>
@@ -903,7 +904,7 @@
                                             linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                                             linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                                         `,
-                                        backgroundSize: `${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px`
+                                        backgroundSize: `${gridPixels}px ${gridPixels}px, ${gridPixels}px ${gridPixels}px, ${gridPixels * 2}px ${gridPixels * 2}px, ${gridPixels * 2}px ${gridPixels * 2}px`
                                     }} />
                                     
                                     <div className="relative">
