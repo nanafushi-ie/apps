@@ -333,8 +333,8 @@
             const [moduleKey, setModuleKey] = useState('tatami');
             const [unitSizeMm, setUnitSizeMm] = useState(MODULE_OPTIONS.tatami.unitSizeMm);
             const [baseDraft, setBaseDraft] = useState({
-                w: Math.round(11000 / MODULE_OPTIONS.tatami.unitSizeMm),
-                h: Math.round(7000 / MODULE_OPTIONS.tatami.unitSizeMm)
+                w: Math.round(9100 / MODULE_OPTIONS.tatami.unitSizeMm),
+                h: Math.round(9100 / MODULE_OPTIONS.tatami.unitSizeMm)
             });
             const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
             const [interactionMode, setInteractionMode] = useState(null);
@@ -657,7 +657,7 @@
                     linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                     linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                 `;
-                exportRoot.style.backgroundSize = `${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px`;
+                exportRoot.style.backgroundSize = `${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px`;
                 exportRoot.style.backgroundPosition = `${marginPx}px ${marginPx}px`;
 
                 const exportContent = document.createElement('div');
@@ -903,7 +903,7 @@
                                             linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                                             linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                                         `,
-                                        backgroundSize: `${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px`
+                                        backgroundSize: `${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS}px ${GRID_PIXELS}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px`
                                     }} />
                                     
                                     <div className="relative">
