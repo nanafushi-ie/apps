@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="地域や電気使用量から、太陽光発電と蓄電池の長期コストを比較できるシミュレーター"
+    />
+    <title>ひだまり予報｜太陽光コストシミュレーター</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="ひだまり予報 トップ">
+        <span class="brand-mark" aria-hidden="true">☀</span>
+        <span>
+          <strong>ひだまり予報</strong>
+          <small>Solar cost simulator</small>
+        </span>
+      </a>
+      <button id="shareHeader" class="ghost-button" type="button">結果をシェア</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">SOLAR COST PLANNER</p>
+        <h1>わが家の太陽光、<br /><em>いつ元が取れる？</em></h1>
+        <p>
+          地域・暮らし・設備の条件から、30年間の支出を見える化。
+          太陽光なし、太陽光のみ、蓄電池ありを同じ条件で比べます。
+        </p>
+      </section>
+
+      <section class="app-shell" aria-label="シミュレーター">
+        <aside class="controls">
+          <div class="panel-heading">
+            <div>
+              <p class="step-label">YOUR PLAN</p>
+              <h2>条件を入力</h2>
+            </div>
+            <button id="resetButton" class="text-button" type="button">初期値に戻す</button>
+          </div>
+
+          <form id="simulatorForm">
+            <fieldset>
+              <legend><span>01</span> 地域と暮らし</legend>
+              <label>
+                都道府県
+                <select id="prefecture" name="prefecture"></select>
+                <small id="regionNote"></small>
+              </label>
+              <div class="field-grid">
+                <label>
+                  年間電力使用量
+                  <span class="input-unit">
+                    <input id="annualUsage" type="number" min="500" max="30000" step="100" value="4700" />
+                    <b>kWh</b>
+                  </span>
+                </label>
+                <label>
+                  買電単価
+                  <span class="input-unit">
+                    <input id="electricityPrice" type="number" min="1" max="200" step="0.1" value="35" />
+                    <b>円/kWh</b>
+                  </span>
+                </label>
+              </div>
+              <label>
+                電気代の年間上昇率
+                <div class="range-row">
+                  <input id="priceGrowth" type="range" min="0" max="8" step="0.1" value="3" />
+                  <output id="priceGrowthOutput">3.0%</output>
+                </div>
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend><span>02</span> 太陽光パネル</legend>
+              <div class="field-grid">
+                <label>
+                  パネル容量
+                  <span class="input-unit">
+                    <input id="panelCapacity" type="number" min="0.5" max="30" step="0.1" value="5" />
+                    <b>kW</b>
+                  </span>
+                </label>
+                <label>
+                  設置費用
+                  <span class="input-unit">
+                    <input id="solarCost" type="number" min="0" max="20000000" step="10000" value="1400000" />
+                    <b>円</b>
+                  </span>
+                </label>
+              </div>
+              <div class="field-grid">
+                <label>
+                  補助金
+                  <span class="input-unit">
+                    <input id="solarSubsidy" type="number" min="0" max="10000000" step="10000" value="100000" />
+                    <b>円</b>
+                  </span>
+                </label>
+                <label>
+                  年間劣化率
+                  <span class="input-unit">
+                    <input id="panelDegradation" type="number" min="0" max="5" step="0.1" value="0.5" />
+                    <b>%</b>
+                  </span>
+                </label>
+              </div>
+              <label>
+                屋根の向き
+                <select id="roofDirection">
+                  <option value="1">南（基準）</option>
+                  <option value="0.96">南東・南西</option>
+                  <option value="0.85">東・西</option>
+                  <option value="0.70">北東・北西</option>
+                  <option value="0.55">北</option>
+                </select>
+              </label>
+              <label>
+                太陽光のみの自家消費率
+                <div class="range-row">
+                  <input id="selfConsumption" type="range" min="10" max="80" step="1" value="30" />
+                  <output id="selfConsumptionOutput">30%</output>
+                </div>
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend><span>03</span> 蓄電池</legend>
+              <label class="toggle-row">
+                <span>
+                  <strong>蓄電池プランも比較</strong>
+                  <small>交換費用を含めて試算します</small>
+                </span>
+                <input id="includeBattery" type="checkbox" checked />
+              </label>
+              <div id="batteryFields">
+                <div class="field-grid">
+                  <label>
+                    導入費用
+                    <span class="input-unit">
+                      <input id="batteryCost" type="number" min="0" max="20000000" step="10000" value="1500000" />
+                      <b>円</b>
+                    </span>
+                  </label>
+                  <label>
+                    補助金
+                    <span class="input-unit">
+                      <input id="batterySubsidy" type="number" min="0" max="10000000" step="10000" value="300000" />
+                      <b>円</b>
+                    </span>
+                  </label>
+                </div>
+                <label>
+                  蓄電池ありの自家消費率
+                  <div class="range-row">
+                    <input id="batteryConsumption" type="range" min="30" max="95" step="1" value="70" />
+                    <output id="batteryConsumptionOutput">70%</output>
+                  </div>
+                </label>
+                <div class="field-grid">
+                  <label>
+                    交換年
+                    <span class="input-unit">
+                      <input id="batteryReplacementYear" type="number" min="5" max="30" step="1" value="15" />
+                      <b>年目</b>
+                    </span>
+                  </label>
+                  <label>
+                    交換費用
+                    <span class="input-unit">
+                      <input id="batteryReplacementCost" type="number" min="0" max="20000000" step="10000" value="1000000" />
+                      <b>円</b>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+
+            <details>
+              <summary>売電・メンテナンスの詳細設定</summary>
+              <div class="details-body">
+                <div class="field-grid">
+                  <label>
+                    1〜4年目の売電
+                    <span class="input-unit">
+                      <input id="fitEarly" type="number" min="0" max="100" step="0.1" value="24" />
+                      <b>円</b>
+                    </span>
+                  </label>
+                  <label>
+                    5〜10年目の売電
+                    <span class="input-unit">
+                      <input id="fitLate" type="number" min="0" max="100" step="0.1" value="8.3" />
+                      <b>円</b>
+                    </span>
+                  </label>
+                </div>
+                <div class="field-grid">
+                  <label>
+                    11年目以降の売電
+                    <span class="input-unit">
+                      <input id="postFit" type="number" min="0" max="100" step="0.1" value="8" />
+                      <b>円</b>
+                    </span>
+                  </label>
+                  <label>
+                    パワコン交換年
+                    <span class="input-unit">
+                      <input id="inverterYear" type="number" min="5" max="30" step="1" value="15" />
+                      <b>年目</b>
+                    </span>
+                  </label>
+                </div>
+                <label>
+                  パワコン交換費用
+                  <span class="input-unit">
+                    <input id="inverterCost" type="number" min="0" max="5000000" step="10000" value="200000" />
+                    <b>円</b>
+                  </span>
+                </label>
+              </div>
+            </details>
+          </form>
+        </aside>
+
+        <section class="results" aria-live="polite">
+          <div class="results-top">
+            <div>
+              <p class="step-label">YOUR FORECAST</p>
+              <h2>30年間の見通し</h2>
+            </div>
+            <div class="result-actions">
+              <button id="downloadImage" class="ghost-button" type="button">画像を保存</button>
+              <button id="shareButton" class="primary-button" type="button">結果をシェア</button>
+            </div>
+          </div>
+
+          <div id="summaryCards" class="summary-cards"></div>
+
+          <article class="chart-card">
+            <div class="chart-heading">
+              <div>
+                <h3>累積支出の推移</h3>
+                <p>初期費用・電気代・売電収入・機器交換を含む概算</p>
+              </div>
+              <div id="legend" class="legend"></div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="costChart" role="img" aria-label="30年間の累積支出比較グラフ"></canvas>
+              <div id="chartTooltip" class="chart-tooltip" hidden></div>
+            </div>
+          </article>
+
+          <div class="insight-grid">
+            <article class="break-even-card">
+              <p class="card-kicker">BREAK-EVEN</p>
+              <h3 id="breakEvenHeadline"></h3>
+              <p id="breakEvenText"></p>
+            </article>
+            <article class="generation-card">
+              <p class="card-kicker">LOCAL ESTIMATE</p>
+              <h3 id="generationHeadline"></h3>
+              <p id="generationText"></p>
+            </article>
+          </div>
+
+          <details class="yearly-details">
+            <summary>年ごとの計算内訳を見る</summary>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>年</th>
+                    <th>発電量</th>
+                    <th>太陽光なし</th>
+                    <th>太陽光のみ</th>
+                    <th>蓄電池あり</th>
+                  </tr>
+                </thead>
+                <tbody id="yearlyTable"></tbody>
+              </table>
+            </div>
+          </details>
+
+          <p class="disclaimer">
+            本結果は入力条件と都道府県単位の代表値に基づく概算です。実際の発電量・料金・補助制度・機器寿命を保証するものではありません。
+            導入判断時は施工会社等の個別シミュレーションもご確認ください。
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <div id="shareModal" class="modal" hidden>
+      <div class="modal-backdrop" data-close-modal></div>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+        <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
+        <p class="step-label">SHARE YOUR FORECAST</p>
+        <h2 id="shareTitle">結果をシェア</h2>
+        <canvas id="shareCanvas" width="1200" height="630"></canvas>
+        <div class="share-buttons">
+          <button id="nativeShare" class="primary-button" type="button">画像付きで共有</button>
+          <button id="shareX" class="social-button x-button" type="button">Xで共有</button>
+          <button id="shareThreads" class="social-button threads-button" type="button">Threadsで共有</button>
+          <button id="copyShareText" class="ghost-button" type="button">本文をコピー</button>
+        </div>
+        <p class="modal-note">
+          端末が画像共有に対応していない場合は、画像を保存して投稿画面で添付してください。
+        </p>
+      </section>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
