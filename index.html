@@ -59,6 +59,7 @@
 
         const LEGACY_UNIT_SIZE_MM = 250;
         const GRID_PIXELS = 15;
+        const CANVAS_GRID_OFFSET_PX = 6000;
         const EXPORT_MARGIN_GRID = 2;
         const MODULE_OPTIONS = {
             tatami: { key: 'tatami', label: '畳モジュール', unitSizeMm: 455, description: '1目盛り = 455mm' },
@@ -352,6 +353,7 @@
             const legacyGridToCurrent = (grid) => Math.max(1, Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm));
             const legacyPositionToCurrent = (grid) => Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm);
             const gridPixels = GRID_PIXELS * unitSizeMm / LEGACY_UNIT_SIZE_MM;
+            const snapToGrid = (value) => Math.round(value);
 
             const calculateArea = (w, h) => {
                 const unitMeters = unitSizeMm / 1000;
@@ -619,16 +621,28 @@
                     setElements(prev => prev.map(el => {
                         if (interactionMode === 'move') {
                             if (el.id === selectedId) {
-                                return { ...el, x: Math.round(interactionRef.current.initialX + dx_grid), y: Math.round(interactionRef.current.initialY + dy_grid) };
+                                return {
+                                    ...el,
+                                    x: snapToGrid(interactionRef.current.initialX + dx_grid),
+                                    y: snapToGrid(interactionRef.current.initialY + dy_grid)
+                                };
                             }
                             const linked = interactionRef.current.linkedFurniture.find(furniture => furniture.id === el.id);
                             if (linked) {
-                                return { ...el, x: Math.round(linked.initialX + dx_grid), y: Math.round(linked.initialY + dy_grid) };
+                                return {
+                                    ...el,
+                                    x: snapToGrid(linked.initialX + dx_grid),
+                                    y: snapToGrid(linked.initialY + dy_grid)
+                                };
                             }
                             return el;
                         }
                         if (el.id !== selectedId) return el;
-                        return { ...el, w: Math.max(1, Math.round(interactionRef.current.initialW + dx_grid)), h: Math.max(1, Math.round(interactionRef.current.initialH + dy_grid)) };
+                        return {
+                            ...el,
+                            w: Math.max(1, snapToGrid(interactionRef.current.initialW + dx_grid)),
+                            h: Math.max(1, snapToGrid(interactionRef.current.initialH + dy_grid))
+                        };
                     }));
                 }
             }, [interactionMode, selectedId, view.scale, gridPixels]);
@@ -904,7 +918,8 @@
                                             linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
                                             linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
                                         `,
-                                        backgroundSize: `${gridPixels}px ${gridPixels}px, ${gridPixels}px ${gridPixels}px, ${gridPixels * 2}px ${gridPixels * 2}px, ${gridPixels * 2}px ${gridPixels * 2}px`
+                                        backgroundSize: `${gridPixels}px ${gridPixels}px, ${gridPixels}px ${gridPixels}px, ${gridPixels * 2}px ${gridPixels * 2}px, ${gridPixels * 2}px ${gridPixels * 2}px`,
+                                        backgroundPosition: `${CANVAS_GRID_OFFSET_PX}px ${CANVAS_GRID_OFFSET_PX}px`
                                     }} />
                                     
                                     <div className="relative">
