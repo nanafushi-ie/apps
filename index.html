@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>間取りスケッチャー | 共有・プリセット対応版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        body { 
+            font-family: 'Inter', 'Noto Sans JP', sans-serif; 
+            touch-action: manipulation;
+            overscroll-behavior: none;
+            margin: 0;
+            background-color: #f1f5f9;
+        }
+        input, button { touch-action: manipulation; }
+        input.dimension-input {
+            font-size: 16px;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @media print { .no-print { display: none !important; } }
+        
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+        }
+
+        .app-shell {
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        .floating-zoom-controls {
+            right: max(1rem, env(safe-area-inset-right));
+            bottom: max(1rem, env(safe-area-inset-bottom));
+        }
+
+        @media (min-width: 640px) {
+            .floating-zoom-controls {
+                right: max(1.5rem, env(safe-area-inset-right));
+                bottom: max(1.5rem, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-900 overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        const UNIT_SIZE_MM = 250;
+        const GRID_PIXELS = 15;   
+        const SCALE_FACTOR = 0.25; 
+        const EXPORT_MARGIN_GRID = 2; // 0.5m
+
+        // --- 更新されたプリセットデータ ---
+        const PRESET_PLAN = {
+            "elements": [
+                {"id": 1778592482286, "label": "家の外形", "x": 0, "y": 0, "w": 44, "h": 28, "color": "bg-white/50 border-slate-300 border-2 border-dashed", "type": "base", "rotation": 0, "isFixed": true},
+                {"label": "リビング", "defaultW": 20, "defaultH": 14, "color": "bg-orange-100 border-orange-300", "type": "room", "id": 1778592482287, "x": 12, "y": 15, "w": 19, "h": 13, "rotation": 0},
+                {"label": "ダイニング", "defaultW": 12, "defaultH": 12, "color": "bg-amber-50 border-amber-300", "type": "room", "id": 1778592482288, "x": 31, "y": 14, "w": 13, "h": 14, "rotation": 0},
+                {"label": "キッチン", "defaultW": 12, "defaultH": 8, "color": "bg-yellow-50 border-yellow-200", "type": "room", "id": 1778592482289, "x": 29, "y": 0, "w": 15, "h": 14, "rotation": 0},
+                {"label": "玄関", "defaultW": 12, "defaultH": 12, "color": "bg-stone-100 border-stone-400", "type": "room", "id": 1778592482290, "x": 0, "y": 18, "w": 12, "h": 12, "rotation": 0},
+                {"label": "ワークスペース", "defaultW": 8, "defaultH": 8, "color": "bg-indigo-100 border-indigo-200", "type": "room", "id": 1778592482291, "x": 18, "y": 8, "w": 13, "h": 7, "rotation": 0},
+                {"label": "風呂", "defaultW": 8, "defaultH": 8, "color": "bg-cyan-50 border-cyan-300", "type": "room", "id": 1778592482292, "x": 0, "y": 0, "w": 8, "h": 8, "rotation": 0},
+                {"label": "トイレ", "defaultW": 8, "defaultH": 4, "color": "bg-slate-50 border-slate-300", "type": "room", "id": 1778592482293, "x": 0, "y": 8, "w": 8, "h": 4, "rotation": 0},
+                {"label": "洗面", "defaultW": 8, "defaultH": 6, "color": "bg-blue-50 border-blue-200", "type": "room", "id": 1778592482294, "x": 12, "y": 8, "w": 6, "h": 7, "rotation": 0},
+                {"label": "ランドリー", "defaultW": 8, "defaultH": 8, "color": "bg-emerald-50 border-emerald-200", "type": "room", "id": 1778592482295, "x": 8, "y": 0, "w": 9, "h": 8, "rotation": 0},
+                {"label": "WIC", "defaultW": 12, "defaultH": 8, "color": "bg-stone-200 border-stone-300", "type": "room", "id": 1778592482296, "x": 17, "y": 0, "w": 12, "h": 8, "rotation": 0},
+                {"label": "階段", "defaultW": 8, "defaultH": 4, "color": "bg-zinc-50 border-zinc-300", "type": "room", "id": 1778592482297, "x": 0, "y": 12, "w": 8, "h": 6, "rotation": 0},
+                {"id": 1778593211134, "label": "キッチン設備", "x": 34, "y": 8, "w": 10, "h": 4, "color": "bg-emerald-200 border-emerald-400", "type": "furniture", "rotation": 0, "isFixed": false},
+                {"id": 1778593248966, "label": "食卓", "x": 36, "y": 17, "w": 3, "h": 6, "color": "bg-amber-200 border-amber-400", "type": "furniture", "rotation": 0, "isFixed": false},
+                {"id": 1778593254533, "label": "ソファー", "x": 25, "y": 18, "w": 9, "h": 4, "color": "bg-indigo-200 border-indigo-400", "type": "furniture", "rotation": 90, "isFixed": false},
+                {"id": 1778593270215, "label": "テレビ台", "x": 15, "y": 19, "w": 8, "h": 2, "color": "bg-zinc-300 border-zinc-500", "type": "furniture", "rotation": 90, "isFixed": false},
+                {"id": 1778593373215, "label": "カップボード", "x": 37, "y": 0, "w": 7, "h": 2, "color": "bg-orange-200 border-orange-400", "type": "furniture", "rotation": 0, "isFixed": false},
+                {"id": 1778593476722, "label": "カウンター", "x": 28, "y": 8, "w": 7, "h": 3, "color": "bg-lime-100 border-lime-400", "type": "furniture", "rotation": 90, "isFixed": false},
+                {"id": 1778593575325, "label": "食器棚", "x": 32, "y": 0, "w": 5, "h": 2, "color": "bg-pink-100 border-pink-400", "type": "furniture", "rotation": 0, "isFixed": false},
+                {"id": 1778593705328, "label": "冷", "x": 28, "y": 5, "w": 3, "h": 3, "color": "bg-sky-100 border-sky-400", "type": "furniture", "rotation": 270, "isFixed": false},
+                {"id": 1778593728274, "label": "パントリー", "x": 29, "y": 0, "w": 3, "h": 2, "color": "bg-rose-100 border-rose-400", "type": "furniture", "rotation": 0, "isFixed": false},
+                {"id": 1778594101787, "label": "収納", "x": 0, "y": 16, "w": 5, "h": 2, "color": "bg-pink-100 border-pink-400", "type": "furniture", "rotation": 0, "isFixed": false},
+                {"id": 1778594142457, "label": "カウンター", "x": 38, "y": 26, "w": 6, "h": 2, "color": "bg-lime-100 border-lime-400", "type": "furniture", "rotation": 180, "isFixed": false},
+                {"id": 1778594397009, "label": "収納", "x": 12, "y": 23, "w": 5, "h": 3, "color": "bg-sky-100 border-sky-400", "type": "furniture", "rotation": 270, "isFixed": false},
+                {"id": 1778594464752, "label": "収納", "x": 12, "y": 18, "w": 5, "h": 3, "color": "bg-purple-100 border-purple-400", "type": "furniture", "rotation": 90, "isFixed": false},
+                {"id": 1778594897003, "label": "本棚", "x": 18, "y": 8, "w": 7, "h": 2, "color": "bg-purple-100 border-purple-400", "type": "furniture", "rotation": 270, "isFixed": false},
+                {"id": 1778595009653, "label": "ベンチ", "x": 42, "y": 17, "w": 6, "h": 2, "color": "bg-rose-100 border-rose-400", "type": "furniture", "rotation": 90, "isFixed": false}
+            ],
+            "baseDraft": {"w": 44, "h": 28}
+        };
+
+        const COLOR_PALETTES = [
+            { bg: 'bg-rose-100', border: 'border-rose-400' },
+            { bg: 'bg-sky-100', border: 'border-sky-400' },
+            { bg: 'bg-teal-100', border: 'border-teal-400' },
+            { bg: 'bg-lime-100', border: 'border-lime-400' },
+            { bg: 'bg-purple-100', border: 'border-purple-400' },
+            { bg: 'bg-pink-100', border: 'border-pink-400' },
+            { bg: 'bg-indigo-50', border: 'border-indigo-200' },
+        ];
+
+        const ROOM_DATA = [
+            { label: 'リビング', defaultW: 20, defaultH: 14, color: 'bg-orange-100 border-orange-300', type: 'room' },
+            { label: 'ダイニング', defaultW: 12, defaultH: 12, color: 'bg-amber-50 border-amber-300', type: 'room' },
+            { label: 'キッチン', defaultW: 12, defaultH: 8, color: 'bg-yellow-50 border-yellow-200', type: 'room' },
+            { label: '玄関', defaultW: 12, defaultH: 12, color: 'bg-stone-100 border-stone-400', type: 'room' },
+            { label: 'ワークスペース', defaultW: 8, defaultH: 8, color: 'bg-indigo-100 border-indigo-200', type: 'room' },
+            { label: '風呂', defaultW: 8, defaultH: 8, color: 'bg-cyan-50 border-cyan-300', type: 'room' },
+            { label: 'トイレ', defaultW: 8, defaultH: 4, color: 'bg-slate-50 border-slate-300', type: 'room' },
+            { label: '洗面', defaultW: 8, defaultH: 6, color: 'bg-blue-50 border-blue-200', type: 'room' },
+            { label: 'ランドリー', defaultW: 8, defaultH: 8, color: 'bg-emerald-50 border-emerald-200', type: 'room' },
+            { label: 'WIC', defaultW: 12, defaultH: 8, color: 'bg-stone-200 border-stone-300', type: 'room' },
+            { label: '階段', defaultW: 8, defaultH: 4, color: 'bg-zinc-50 border-zinc-300', type: 'room' },
+        ];
+
+        const FURNITURE_DATA = [
+            { label: 'ソファー', defaultW: 8, defaultH: 4, color: 'bg-indigo-200 border-indigo-400', type: 'furniture', icon: 'Armchair' },
+            { label: '食卓', defaultW: 6, defaultH: 6, color: 'bg-amber-200 border-amber-400', type: 'furniture', icon: 'Utensils' },
+            { label: 'テレビ台', defaultW: 8, defaultH: 2, color: 'bg-zinc-300 border-zinc-500', type: 'furniture', icon: 'Tv' },
+            { label: 'キッチン設備', defaultW: 10, defaultH: 4, color: 'bg-emerald-200 border-emerald-400', type: 'furniture', icon: 'ChefHat' },
+            { label: 'カップボード', defaultW: 8, defaultH: 2, color: 'bg-orange-200 border-orange-400', type: 'furniture', icon: 'Layout' },
+        ];
+
+        const DimensionInput = ({ label, value, onCommit, large = false }) => {
+            const [draft, setDraft] = useState(String(value));
+
+            useEffect(() => {
+                setDraft(String(value));
+            }, [value]);
+
+            const commit = (rawValue = draft) => {
+                const numeric = Number(String(rawValue).replace(/[^\d]/g, ''));
+                const safeValue = Number.isFinite(numeric) && numeric > 0 ? numeric : value;
+                onCommit(safeValue);
+            };
+
+            const stepBy = (delta) => {
+                const nextValue = Math.max(UNIT_SIZE_MM, value + delta);
+                setDraft(String(nextValue));
+                onCommit(nextValue);
+            };
+
+            return (
+                <div>
+                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">{label}</label>
+                    <div className="flex overflow-hidden rounded-xl border bg-white focus-within:ring-4 focus-within:ring-indigo-50">
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value.replace(/[^\d]/g, ''))}
+                            onBlur={() => commit()}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                }
+                            }}
+                            className={`dimension-input min-w-0 flex-1 border-0 bg-white px-3 outline-none font-bold ${large ? 'py-3 text-base sm:text-lg' : 'py-2 text-base'}`}
+                        />
+                        <div className="flex flex-col border-l border-slate-200">
+                            <button type="button" onClick={() => stepBy(UNIT_SIZE_MM)} className="w-10 flex-1 min-h-[24px] bg-slate-50 text-slate-700 font-black leading-none active:bg-indigo-50">+</button>
+                            <button type="button" onClick={() => stepBy(-UNIT_SIZE_MM)} className="w-10 flex-1 min-h-[24px] bg-slate-50 text-slate-700 font-black leading-none border-t border-slate-200 active:bg-indigo-50">-</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const SvgIcon = ({ name, size = 18, className = "" }) => {
+            const paths = {
+                Home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+                Save: <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>,
+                Download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+                Upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>,
+                Rotate: <><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></>,
+                Trash: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>,
+                Resize: <><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></>,
+                Plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+                Search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+                Settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+                FileJson: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></>,
+                Clipboard: <><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></>,
+                FileText: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></>
+            };
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {paths[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
+        };
+
+        const App = () => {
+            const [elements, setElements] = useState([]);
+            const [selectedId, setSelectedId] = useState(null);
+            const [baseDraft, setBaseDraft] = useState({ w: 44, h: 28 });
+            const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
+            const [interactionMode, setInteractionMode] = useState(null);
+            const [showOpenModal, setShowOpenOptions] = useState(false);
+            const fileInputRef = useRef(null);
+
+            const mainRef = useRef(null);
+            const canvasRef = useRef(null);
+            const interactionRef = useRef({ 
+                startX: 0, startY: 0, initialX: 0, initialY: 0, initialW: 0, initialH: 0, initialViewX: 0, initialViewY: 0, startDist: 0, initialScale: 1, linkedFurniture: []
+            });
+
+            const mmToGrid = (mm) => Math.max(1, Math.round((Number(mm) || 0) / UNIT_SIZE_MM));
+            const gridToMm = (grid) => (Number(grid) || 0) * UNIT_SIZE_MM;
+
+            const calculateArea = (w, h) => {
+                const sqm = (w * SCALE_FACTOR * h * SCALE_FACTOR).toFixed(2);
+                const tatami = (sqm / 1.62).toFixed(1);
+                const mWidth = (w * SCALE_FACTOR).toFixed(2);
+                const mHeight = (h * SCALE_FACTOR).toFixed(2);
+                return { sqm, tatami, mWidth, mHeight };
+            };
+
+            const normalizeRotation = (rotation) => ((Number(rotation) || 0) % 360 + 360) % 360;
+
+            const getVisualSize = (item) => {
+                const w = Number(item.w);
+                const h = Number(item.h);
+                const rotation = normalizeRotation(item.rotation);
+                return rotation === 90 || rotation === 270 ? { w: h, h: w } : { w, h };
+            };
+
+            const isFurnitureInsideRoom = (furniture, room) => {
+                if (!furniture || !room || furniture.type !== 'furniture' || room.type !== 'room') return false;
+                const furnitureSize = getVisualSize(furniture);
+                const roomSize = getVisualSize(room);
+                const furnitureCenterX = Number(furniture.x) + furnitureSize.w / 2;
+                const furnitureCenterY = Number(furniture.y) + furnitureSize.h / 2;
+                const roomLeft = Number(room.x);
+                const roomTop = Number(room.y);
+                return furnitureCenterX >= roomLeft && furnitureCenterX <= roomLeft + roomSize.w && furnitureCenterY >= roomTop && furnitureCenterY <= roomTop + roomSize.h;
+            };
+
+            const getLinkedFurniture = (room, sourceElements = elements) => {
+                if (!room || room.type !== 'room') return [];
+                return sourceElements
+                    .filter(item => isFurnitureInsideRoom(item, room))
+                    .map(item => ({
+                        id: item.id,
+                        initialX: Number(item.x),
+                        initialY: Number(item.y),
+                        initialW: Number(item.w),
+                        initialH: Number(item.h),
+                        initialRotation: Number(item.rotation) || 0
+                    }));
+            };
+
+            const rotateLinkedFurniture = (room, sourceElements = elements) => {
+                const linkedFurniture = getLinkedFurniture(room, sourceElements);
+                if (linkedFurniture.length === 0) {
+                    return item => item.id === room.id ? { ...item, rotation: (item.rotation + 90) % 360 } : item;
+                }
+
+                return item => {
+                    const nextRoomRotation = (normalizeRotation(room.rotation) + 90) % 360;
+                    if (item.id === room.id) return { ...item, rotation: nextRoomRotation };
+                    const linked = linkedFurniture.find(furniture => furniture.id === item.id);
+                    if (!linked) return item;
+
+                    const roomSize = getVisualSize(room);
+                    const furnitureSize = getVisualSize({
+                        ...item,
+                        w: linked.initialW,
+                        h: linked.initialH,
+                        rotation: linked.initialRotation
+                    });
+                    const relX = linked.initialX - Number(room.x);
+                    const relY = linked.initialY - Number(room.y);
+
+                    return {
+                        ...item,
+                        x: Math.round(Number(room.x) + roomSize.h - relY - furnitureSize.h),
+                        y: Math.round(Number(room.y) + relX),
+                        rotation: (linked.initialRotation + 90) % 360
+                    };
+                };
+            };
+
+            const exportProject = () => {
+                if (elements.length === 0) return;
+                const data = JSON.stringify({ elements, baseDraft, timestamp: new Date().toISOString() }, null, 2);
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `間取り案_${new Date().toISOString().slice(0,10)}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const loadProjectData = (parsed) => {
+                if (parsed.elements) {
+                    setElements(parsed.elements);
+                    if (parsed.baseDraft) setBaseDraft(parsed.baseDraft);
+                    setSelectedId(null);
+                    setTimeout(resetView, 100);
+                }
+            };
+
+            const handleFileImport = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        loadProjectData(parsed);
+                        setShowOpenOptions(false);
+                    } catch (err) {
+                        alert("有効なプロジェクトファイルではありません。");
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = ""; 
+            };
+
+            const loadPreset = () => {
+                loadProjectData(PRESET_PLAN);
+                setShowOpenOptions(false);
+            };
+
+            const resetView = useCallback(() => {
+                if (!mainRef.current) return;
+                const base = elements.find(e => e.type === 'base');
+                if (!base) return;
+                const padding = 100;
+                const availW = mainRef.current.clientWidth - padding;
+                const availH = mainRef.current.clientHeight - padding;
+                const contentW = (Number(base.w) || 1) * GRID_PIXELS;
+                const contentH = (Number(base.h) || 1) * GRID_PIXELS;
+                const newScale = Math.min(availW / contentW, availH / contentH, 1.2);
+                setView({
+                    x: (mainRef.current.clientWidth - contentW * newScale) / 2,
+                    y: (mainRef.current.clientHeight - contentH * newScale) / 2,
+                    scale: isFinite(newScale) ? newScale : 1
+                });
+            }, [elements]);
+
+            const addElement = (proto) => {
+                const id = Date.now();
+                const newEl = {
+                    id, label: proto.label, x: 4, y: 4, 
+                    w: Number(proto.defaultW) || 4, h: Number(proto.defaultH) || 4,
+                    color: proto.color, type: proto.type, rotation: 0, isFixed: proto.type === 'base'
+                };
+
+                if (proto.type === 'base') {
+                    // 基本セット配置
+                    const initialRooms = ROOM_DATA.map((r, i) => {
+                        const coords = [
+                            {x:0,y:0}, {x:20,y:0}, {x:32,y:0}, {x:0,y:14}, 
+                            {x:12,y:14}, {x:20,y:14}, {x:28,y:14}, {x:36,y:14}, 
+                            {x:20,y:22}, {x:32,y:20}, {x:0,y:24}
+                        ];
+                        return { 
+                            ...r, id: id + i + 1, 
+                            x: coords[i]?.x ?? 4, y: coords[i]?.y ?? 4, 
+                            w: Number(r.defaultW), h: Number(r.defaultH), rotation: 0 
+                        };
+                    });
+                    setElements([{...newEl, x: 0, y: 0, w: Number(baseDraft.w), h: Number(baseDraft.h)}, ...initialRooms]);
+                    setTimeout(resetView, 50);
+                } else {
+                    setElements(prev => [...prev, newEl]);
+                }
+                setSelectedId(id);
+            };
+
+            const addCustomElement = (type) => {
+                const name = window.prompt(`${type === 'room' ? '部屋' : '家具'}の名前を入力してください`, '');
+                if (!name) return;
+                const randomPalette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
+                const proto = {
+                    label: name,
+                    defaultW: type === 'room' ? 8 : 4,
+                    defaultH: type === 'room' ? 8 : 4,
+                    color: `${randomPalette.bg} ${randomPalette.border}`,
+                    type: type
+                };
+                addElement(proto);
+            };
+
+            const onPointerDown = (e) => {
+                const touches = e.nativeEvent instanceof TouchEvent ? e.nativeEvent.touches : null;
+                if (touches && touches.length === 2) {
+                    const dist = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+                    interactionRef.current = { ...interactionRef.current, startDist: dist, initialScale: view.scale };
+                    setInteractionMode('zoom');
+                    return;
+                }
+
+                const clientX = e.clientX;
+                const clientY = e.clientY;
+                const target = e.target.closest('[data-id]');
+                const action = e.target.closest('[data-action]')?.dataset.action;
+
+                if (target) {
+                    const id = parseInt(target.dataset.id);
+                    const el = elements.find(item => item.id === id);
+                    if (!el) return;
+
+                    if (el.type === 'base') {
+                        setSelectedId(null);
+                        setInteractionMode('pan');
+                        interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialViewX: view.x, initialViewY: view.y };
+                        return;
+                    }
+
+                    setSelectedId(id);
+                    if (action === 'resize') {
+                        setInteractionMode('resize');
+                        interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialW: Number(el.w), initialH: Number(el.h), linkedFurniture: [] };
+                    } else {
+                        setInteractionMode('move');
+                        interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialX: Number(el.x), initialY: Number(el.y), linkedFurniture: getLinkedFurniture(el) };
+                    }
+                } else {
+                    setSelectedId(null);
+                    setInteractionMode('pan');
+                    interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialViewX: view.x, initialViewY: view.y };
+                }
+                e.target.setPointerCapture(e.pointerId);
+            };
+
+            const onPointerMove = useCallback((e) => {
+                if (!interactionMode) return;
+                const touches = e.nativeEvent instanceof TouchEvent ? e.nativeEvent.touches : null;
+                
+                if (interactionMode === 'zoom' && touches?.length === 2) {
+                    const dist = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+                    const ratio = dist / interactionRef.current.startDist;
+                    setView(v => ({ ...v, scale: Math.min(Math.max(interactionRef.current.initialScale * ratio, 0.2), 4) }));
+                    return;
+                }
+
+                const clientX = e.clientX;
+                const clientY = e.clientY;
+
+                if (interactionMode === 'pan') {
+                    setView(v => ({
+                        ...v,
+                        x: interactionRef.current.initialViewX + (clientX - interactionRef.current.startX),
+                        y: interactionRef.current.initialViewY + (clientY - interactionRef.current.startY)
+                    }));
+                } else if (interactionMode === 'move' || interactionMode === 'resize') {
+                    const dx_grid = (clientX - interactionRef.current.startX) / (view.scale * GRID_PIXELS);
+                    const dy_grid = (clientY - interactionRef.current.startY) / (view.scale * GRID_PIXELS);
+
+                    setElements(prev => prev.map(el => {
+                        if (interactionMode === 'move') {
+                            if (el.id === selectedId) {
+                                return { ...el, x: Math.round(interactionRef.current.initialX + dx_grid), y: Math.round(interactionRef.current.initialY + dy_grid) };
+                            }
+                            const linked = interactionRef.current.linkedFurniture.find(furniture => furniture.id === el.id);
+                            if (linked) {
+                                return { ...el, x: Math.round(linked.initialX + dx_grid), y: Math.round(linked.initialY + dy_grid) };
+                            }
+                            return el;
+                        }
+                        if (el.id !== selectedId) return el;
+                        return { ...el, w: Math.max(1, Math.round(interactionRef.current.initialW + dx_grid)), h: Math.max(1, Math.round(interactionRef.current.initialH + dy_grid)) };
+                    }));
+                }
+            }, [interactionMode, selectedId, view.scale]);
+
+            const onPointerUp = (e) => {
+                setInteractionMode(null);
+                if (e.target.hasPointerCapture(e.pointerId)) e.target.releasePointerCapture(e.pointerId);
+            };
+
+            const exportPNG = async () => {
+                if (!baseEl || !window.html2canvas) return;
+
+                const marginPx = EXPORT_MARGIN_GRID * GRID_PIXELS;
+                const exportWidth = (Number(baseEl.w) + EXPORT_MARGIN_GRID * 2) * GRID_PIXELS;
+                const exportHeight = (Number(baseEl.h) + EXPORT_MARGIN_GRID * 2) * GRID_PIXELS;
+                const exportRoot = document.createElement('div');
+                exportRoot.style.position = 'fixed';
+                exportRoot.style.left = '0';
+                exportRoot.style.top = '0';
+                exportRoot.style.width = `${exportWidth}px`;
+                exportRoot.style.height = `${exportHeight}px`;
+                exportRoot.style.overflow = 'hidden';
+                exportRoot.style.backgroundColor = '#ffffff';
+                exportRoot.style.pointerEvents = 'none';
+                exportRoot.style.zIndex = '-1';
+                exportRoot.style.backgroundImage = `
+                    linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
+                    linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
+                `;
+                exportRoot.style.backgroundSize = `${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px`;
+                exportRoot.style.backgroundPosition = `${marginPx}px ${marginPx}px`;
+
+                const exportContent = document.createElement('div');
+                exportContent.style.position = 'relative';
+                exportContent.style.width = '100%';
+                exportContent.style.height = '100%';
+                exportRoot.appendChild(exportContent);
+
+                sortedElements.forEach(el => {
+                    const node = document.createElement('div');
+                    const isBase = el.type === 'base';
+                    node.dataset.exportType = el.type;
+                    node.className = `absolute flex flex-col items-center justify-center border-2 ${el.color} ${isBase ? 'border-dashed border-slate-300 shadow-2xl bg-white/80' : 'border-opacity-50 shadow-sm'} ${el.type === 'furniture' ? 'rounded-2xl opacity-90' : 'rounded-sm'}`;
+                    const style = getElementStyle({ ...el, x: Number(el.x) + EXPORT_MARGIN_GRID, y: Number(el.y) + EXPORT_MARGIN_GRID });
+                    Object.assign(node.style, {
+                        left: `${style.left}px`,
+                        top: `${style.top}px`,
+                        width: `${style.width}px`,
+                        height: `${style.height}px`,
+                        transform: style.transform,
+                        transformOrigin: style.transformOrigin
+                    });
+
+                    if (!isBase) {
+                        const labelWrap = document.createElement('div');
+                        labelWrap.className = 'text-center p-1 pointer-events-none w-full overflow-hidden';
+                        const label = document.createElement('span');
+                        label.className = 'font-black text-slate-800 text-[11px] leading-none block';
+                        label.textContent = el.label;
+                        labelWrap.appendChild(label);
+
+                        if (el.type === 'room') {
+                            const { sqm, tatami, mWidth, mHeight } = calculateArea(el.w, el.h);
+                            const sizeWrap = document.createElement('div');
+                            sizeWrap.className = 'mt-1 space-y-0.5';
+                            const area = document.createElement('span');
+                            area.className = 'text-[9px] text-slate-500 block font-black uppercase tracking-tighter leading-none';
+                            area.textContent = `${tatami}畳 / ${sqm}㎡`;
+                            const dimensions = document.createElement('span');
+                            dimensions.className = 'text-[8px] text-indigo-400 block font-black leading-none';
+                            dimensions.textContent = `${mWidth}m × ${mHeight}m`;
+                            sizeWrap.append(area, dimensions);
+                            labelWrap.appendChild(sizeWrap);
+                        }
+
+                        node.appendChild(labelWrap);
+                    }
+
+                    exportContent.appendChild(node);
+                });
+
+                document.body.appendChild(exportRoot);
+                try {
+                    const capture = await html2canvas(exportRoot, { scale: 2, backgroundColor: "#ffffff" });
+                    const link = document.createElement('a');
+                    link.download = 'floor_plan.png';
+                    link.href = capture.toDataURL();
+                    link.click();
+                } finally {
+                    exportRoot.remove();
+                }
+            };
+
+            const sortedElements = useMemo(() => {
+                const order = { 'base': 0, 'room': 1, 'furniture': 2 };
+                return [...elements].sort((a, b) => order[a.type] - order[b.type]);
+            }, [elements]);
+
+            const selectedEl = elements.find(e => e.id === selectedId);
+            const baseEl = elements.find(e => e.type === 'base');
+
+            // CAD方式: 左上角を固定して回転
+            const getElementStyle = (el) => {
+                const x = (Number(el.x) || 0) * GRID_PIXELS;
+                const y = (Number(el.y) || 0) * GRID_PIXELS;
+                const w = (Number(el.w) || 1) * GRID_PIXELS;
+                const h = (Number(el.h) || 1) * GRID_PIXELS;
+                
+                let transform = `rotate(${el.rotation}deg)`;
+                if (el.rotation === 90) transform += ` translateY(-100%)`;
+                else if (el.rotation === 180) transform += ` translate(-100%, -100%)`;
+                else if (el.rotation === 270) transform += ` translateX(-100%)`;
+
+                return {
+                    left: x,
+                    top: y,
+                    width: w,
+                    height: h,
+                    transform: transform,
+                    transformOrigin: 'top left'
+                };
+            };
+
+            return (
+                <div className="app-shell flex flex-col bg-slate-100 overflow-hidden font-sans select-none text-slate-900">
+                    <header className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center z-50 shrink-0 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><SvgIcon name="Home" size={22} /></div>
+                            <div>
+                                <h1 className="text-lg font-bold leading-tight">間取りスケッチャー</h1>
+                                <p className="text-[10px] text-indigo-500 font-black uppercase tracking-tighter">Preset & Origin Sync v2.1</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".json" className="hidden" />
+                            
+                            <button onClick={() => setShowOpenOptions(true)} className="bg-white border border-slate-200 px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold hover:bg-slate-50 transition-all shadow-sm">
+                                <SvgIcon name="Upload" size={16}/><span>開く</span>
+                            </button>
+                            
+                            <button onClick={exportProject} className="bg-white border border-slate-200 px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold hover:bg-slate-50 transition-all shadow-sm">
+                                <SvgIcon name="FileJson" size={16}/><span>プロジェクト保存</span>
+                            </button>
+                            
+                            <button onClick={exportPNG} className="bg-slate-900 text-white px-5 py-2 rounded-xl flex items-center gap-2 text-xs font-black hover:bg-slate-800 shadow-lg transition-all">
+                                <SvgIcon name="Download" size={16}/><span>PNG出力</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {showOpenModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay animate-in fade-in duration-200" onClick={() => setShowOpenOptions(false)}>
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                                    <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                        <SvgIcon name="Upload" className="text-indigo-600" /> プランを開く
+                                    </h2>
+                                    <button onClick={() => setShowOpenOptions(false)} className="text-slate-400 hover:text-slate-600">
+                                        <SvgIcon name="Plus" size={24} className="rotate-45" />
+                                    </button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <button onClick={() => fileInputRef.current.click()} className="w-full flex items-center gap-4 p-5 border-2 border-slate-50 bg-slate-50 hover:border-indigo-200 hover:bg-indigo-50 rounded-2xl transition-all group">
+                                        <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><SvgIcon name="FileText" className="text-indigo-500" size={24} /></div>
+                                        <div className="text-left"><p className="font-black text-slate-800">ローカルファイルを参照</p><p className="text-[10px] text-slate-400 font-bold uppercase">Saved JSON file</p></div>
+                                    </button>
+                                    <button onClick={loadPreset} className="w-full flex items-center gap-4 p-5 border-2 border-slate-50 bg-slate-50 hover:border-emerald-200 hover:bg-emerald-50 rounded-2xl transition-all group">
+                                        <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><SvgIcon name="Clipboard" className="text-emerald-500" size={24} /></div>
+                                        <div className="text-left"><p className="font-black text-slate-800">プリセットを読み込む</p><p className="text-[10px] text-slate-400 font-bold uppercase">Updated layout preset</p></div>
+                                    </button>
+                                </div>
+                                <div className="px-6 py-4 bg-slate-50 text-[10px] text-slate-400 font-bold text-center">※データは上書きされます。</div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row flex-1 overflow-hidden relative">
+                        <aside className="w-full sm:w-64 max-h-[42dvh] sm:max-h-none bg-white border-b sm:border-b-0 sm:border-r border-slate-200 flex flex-col overflow-y-auto p-3 sm:p-5 space-y-6 scrollbar-hide z-40 shrink-0 shadow-xl">
+                            {!baseEl ? (
+                                <section className="space-y-4 pt-2">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">家のサイズを決定</h3>
+                                    <div className="space-y-4 text-left">
+                                        <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} onCommit={(mm) => setBaseDraft({...baseDraft, w: mmToGrid(mm)})} large />
+                                        <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} onCommit={(mm) => setBaseDraft({...baseDraft, h: mmToGrid(mm)})} large />
+                                        <button onClick={() => addElement({ label: '家の外形', defaultW: baseDraft.w, defaultH: baseDraft.h, color: 'bg-white/50 border-slate-300 border-2 border-dashed', type: 'base' })} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase shadow-xl hover:bg-indigo-700 transition-all mt-2 tracking-widest">確定して配置</button>
+                                    </div>
+                                </section>
+                            ) : (
+                                <div className="space-y-6">
+                                    <section className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-inner">
+                                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><SvgIcon name="Settings" size={14}/> {selectedId && selectedEl.type !== 'base' ? 'パーツ微調整' : '家の外寸微調整'}</h3>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            <DimensionInput label="幅 (mm)" value={selectedId ? gridToMm(selectedEl.w) : gridToMm(baseEl.w)} onCommit={(mm) => {
+                                                const targetId = selectedId || baseEl.id;
+                                                setElements(prev => prev.map(el => el.id === targetId ? {...el, w: mmToGrid(mm)} : el));
+                                            }} />
+                                            <DimensionInput label="奥行 (mm)" value={selectedId ? gridToMm(selectedEl.h) : gridToMm(baseEl.h)} onCommit={(mm) => {
+                                                const targetId = selectedId || baseEl.id;
+                                                setElements(prev => prev.map(el => el.id === targetId ? {...el, h: mmToGrid(mm)} : el));
+                                            }} />
+                                        </div>
+                                    </section>
+                                    <section className="space-y-4">
+                                        <h3 className="hidden sm:block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">部屋を追加</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {ROOM_DATA.map(r => (
+                                                <button key={r.label} onClick={() => addElement(r)} className="flex flex-col items-center p-2 rounded-xl border border-slate-50 bg-slate-50 hover:border-indigo-300 transition-all group shadow-sm">
+                                                    <div className={`w-full h-4 sm:h-7 rounded-lg ${r.color.split(' ')[0]} border ${r.color.split(' ')[1]}`} />
+                                                    <span className="text-[9px] font-black text-slate-600 mt-2 truncate w-full text-center group-hover:text-indigo-600 uppercase tracking-tighter">{r.label}</span>
+                                                </button>
+                                            ))}
+                                            <button onClick={() => addCustomElement('room')} className="flex flex-col items-center justify-center p-2 rounded-xl border-2 border-dashed border-slate-200 bg-white hover:border-indigo-300 hover:text-indigo-600 transition-all group shadow-sm min-h-[50px]">
+                                                <SvgIcon name="Plus" size={20} className="text-slate-400 group-hover:text-indigo-600" />
+                                                <span className="text-[8px] font-black text-slate-400 mt-1 uppercase">カスタム部屋</span>
+                                            </button>
+                                        </div>
+                                    </section>
+                                    <section className="space-y-4">
+                                        <h3 className="hidden sm:block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">家具を配置</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {FURNITURE_DATA.map(f => (
+                                                <button key={f.label} onClick={() => addElement(f)} className="flex flex-col items-center p-2 rounded-xl border border-slate-50 bg-slate-50 hover:border-indigo-200 transition-all group shadow-sm">
+                                                    <span className="hidden sm:inline text-[9px] font-black text-slate-600 mt-2 group-hover:text-indigo-600 uppercase tracking-tighter">{f.label}</span>
+                                                </button>
+                                            ))}
+                                            <button onClick={() => addCustomElement('furniture')} className="flex flex-col items-center justify-center p-2 rounded-xl border-2 border-dashed border-slate-200 bg-white hover:border-indigo-300 hover:text-indigo-600 transition-all group shadow-sm min-h-[50px]">
+                                                <SvgIcon name="Plus" size={20} className="text-slate-400 group-hover:text-indigo-600" />
+                                                <span className="text-[8px] font-black text-slate-400 mt-1 uppercase">カスタム家具</span>
+                                            </button>
+                                        </div>
+                                    </section>
+                                </div>
+                            )}
+                        </aside>
+
+                        <main ref={mainRef} className="flex-1 bg-slate-200 relative overflow-hidden touch-none" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+                            {baseEl ? (
+                                <div ref={canvasRef} className="absolute inset-0 pointer-events-none transition-transform duration-75 ease-out origin-top-left" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
+                                    <div className="absolute top-[-6000px] left-[-6000px] w-[12000px] h-[12000px] bg-white shadow-2xl" style={{
+                                        backgroundImage: `
+                                            linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px),
+                                            linear-gradient(to right, #e2e8f0 1.5px, transparent 1.5px), linear-gradient(to bottom, #e2e8f0 1.5px, transparent 1.5px)
+                                        `,
+                                        backgroundSize: `${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 2}px ${GRID_PIXELS * 2}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px, ${GRID_PIXELS * 4}px ${GRID_PIXELS * 4}px`
+                                    }} />
+                                    
+                                    <div className="relative">
+                                        {sortedElements.map(el => {
+                                            const isSelected = selectedId === el.id;
+                                            const { sqm, tatami, mWidth, mHeight } = calculateArea(el.w, el.h);
+                                            const isBase = el.type === 'base';
+
+                                            return (
+                                                <div key={el.id} data-id={el.id} className={`absolute flex flex-col items-center justify-center border-2 transition-all
+                                                    ${el.color} ${isBase ? 'pointer-events-none border-dashed border-slate-300 shadow-2xl bg-white/80' : 'pointer-events-auto cursor-move border-opacity-50'}
+                                                    ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-4 z-40 shadow-2xl scale-[1.01]' : 'z-10 shadow-sm'}
+                                                    ${el.type === 'furniture' ? 'rounded-2xl opacity-90' : 'rounded-sm'}`}
+                                                    style={getElementStyle(el)}
+                                                >
+                                                    {!isBase && (
+                                                        <div className="text-center p-1 pointer-events-none w-full overflow-hidden">
+                                                            <span className="font-black text-slate-800 text-[11px] leading-none block">{el.label}</span>
+                                                            {el.type === 'room' && (
+                                                                <div className="mt-1 space-y-0.5">
+                                                                    <span className="text-[9px] text-slate-500 block font-black uppercase tracking-tighter leading-none">{tatami}畳 / {sqm}㎡</span>
+                                                                    <span className="text-[8px] text-indigo-400 block font-black leading-none">{mWidth}m × {mHeight}m</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {isSelected && !isBase && (
+                                                        <div className="pointer-events-auto no-print">
+                                                            <div className="absolute -top-5 -right-5 sm:-top-4 sm:-right-4 w-10 h-10 sm:w-8 sm:h-8 bg-white border border-slate-100 rounded-full flex items-center justify-center shadow-2xl text-indigo-600 active:scale-75 transition-transform cursor-pointer"
+                                                                onClick={(e) => { e.stopPropagation(); setElements(prev => prev.map(rotateLinkedFurniture(el, prev))); }}
+                                                            >
+                                                                <SvgIcon name="Rotate" size={18} className="sm:w-4 sm:h-4" />
+                                                            </div>
+                                                            {el.type === 'room' && (
+                                                                <div className="absolute -bottom-6 -right-6 sm:-bottom-5 sm:-right-5 w-12 h-12 sm:w-10 sm:h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white cursor-nwse-resize z-50 active:scale-90 transition-transform touch-none" data-action="resize">
+                                                                    <SvgIcon name="Resize" size={24} className="sm:w-5 sm:h-5" />
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute -top-5 -left-5 sm:-top-4 sm:-left-4 w-10 h-10 sm:w-8 sm:h-8 bg-white border border-slate-100 rounded-full flex items-center justify-center shadow-2xl text-red-500 active:scale-75 transition-transform cursor-pointer"
+                                                                onClick={(e) => { e.stopPropagation(); setElements(prev => prev.filter(item => item.id !== el.id)); setSelectedId(null); }}
+                                                            >
+                                                                <SvgIcon name="Trash" size={18} className="sm:w-4 sm:h-4" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                                    <SvgIcon name="Home" size={100} className="mb-4 opacity-5 animate-pulse" />
+                                    <p className="font-black text-sm uppercase tracking-widest text-slate-400">家の外形を入力して開始</p>
+                                </div>
+                            )}
+
+                            <div className="floating-zoom-controls absolute flex flex-col gap-3 z-50 no-print">
+                                <button onClick={resetView} className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-full shadow-xl flex items-center justify-center text-indigo-600 active:bg-indigo-50 border border-slate-100"><SvgIcon name="Search" size={24} className="sm:w-7 sm:h-7" /></button>
+                                <div className="bg-white rounded-[2rem] shadow-xl flex flex-col border border-slate-100 overflow-hidden">
+                                    <button onClick={() => setView(v => ({...v, scale: Math.min(v.scale * 1.2, 4)}))} className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center font-black text-2xl sm:text-[28px] active:bg-slate-50 border-b-2 border-slate-100 transition-colors">+</button>
+                                    <button onClick={() => setView(v => ({...v, scale: Math.max(v.scale * 0.8, 0.2)}))} className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center font-black text-2xl sm:text-[28px] active:bg-slate-50 transition-colors">-</button>
+                                </div>
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
