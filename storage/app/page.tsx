@@ -30,7 +30,7 @@ const initialState: AppState = {
 
 const categoryInfo: Record<Category, { label: string; description: string }> = {
   shoes: { label: "靴", description: "靴棚の幅と高さを考える" },
-  clothes: { label: "衣類", description: "掛ける・たたむを一緒に計算" },
+  clothes: { label: "衣類", description: "掛ける・たたむを分けて計算" },
   books: { label: "書籍", description: "本棚の幅と高さを考える" },
 };
 
@@ -81,6 +81,7 @@ export default function Home() {
     let count = 0;
     let unit = "個";
     let extraNote = "";
+    let clothingAllocation: { pipeLength: number; drawerWidth: number; drawers: number; drawerColumns: number } | null = null;
 
     if (state.category === "shoes") {
       const { adult, child, boots } = state.shoes;
@@ -105,11 +106,15 @@ export default function Home() {
       count = hanger + heavy + folded;
       unit = "着";
       const pipeLength = (hanger * 35 + heavy * 65) * marginFactor;
-      const drawers = Math.max(1, Math.ceil((folded * marginFactor) / 18));
-      recommended = { width: Math.max(900, roundUp(pipeLength, 100)), height: Math.max(1800, drawers * 220 + 200), depth: 600 };
+      const drawers = folded > 0 ? Math.max(1, Math.ceil((folded * marginFactor) / 18)) : 0;
+      const drawerColumns = drawers > 0 ? Math.ceil(drawers / 6) : 0;
+      const drawerWidth = drawerColumns * 600;
+      const roundedPipeLength = pipeLength > 0 ? Math.max(600, roundUp(pipeLength, 100)) : 0;
+      clothingAllocation = { pipeLength: roundedPipeLength, drawerWidth, drawers, drawerColumns };
+      recommended = { width: Math.max(600, roundedPipeLength + drawerWidth), height: Math.max(1800, Math.min(6, drawers) * 220 + 200), depth: 600 };
       requiredLength = pipeLength;
       details = [`ハンガー ${hanger}着`, `コート・厚手 ${heavy}着`, `たたむ衣類 ${folded}着`];
-      extraNote = `パイプ約${roundUp(pipeLength, 100)}mmと、引き出し${drawers}段が目安です。`;
+      extraNote = `ハンガーパイプ${roundedPipeLength}mmと、幅${drawerWidth}mmの引き出し収納（${drawers}段）に分けて割り付けています。`;
     }
 
     const output = { ...recommended };
@@ -159,6 +164,7 @@ export default function Home() {
       spareCount: Math.max(0, capacityCount - count),
       output,
       levels,
+      clothingAllocation,
       dimensions: (Object.keys(dimensionLabels) as DimensionKey[]).map((key) => ({ key, label: dimensionLabels[key], value: output[key], calculated: dimensionUnknown(key) })),
     };
   }, [state]);
@@ -243,12 +249,13 @@ export default function Home() {
     const depthCalculated = result.dimensions.find((item) => item.key === "depth")?.calculated;
 
     if (state.category === "clothes") {
+      const allocation = result.clothingAllocation!;
       return (
         <div className="elevation-wrap">
           <div className={`dimension-line dimension-height ${heightCalculated ? "calculated" : "fixed"}`}><b>{result.output.height}</b><small>mm</small></div>
-          <div className="storage-elevation clothes-elevation">
-            <div className="hanger-zone"><span className="rail" />{Array.from({ length: 4 }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/clothes.png`} alt="" aria-hidden="true" />)}<small>掛ける衣類</small></div>
-            <div className="drawer-zone">{Array.from({ length: 4 }).map((_, index) => <span key={index} />)}<small>たたむ衣類</small></div>
+          <div className="storage-elevation clothes-elevation" style={{ gridTemplateColumns: `${Math.max(1, allocation.pipeLength)}fr ${Math.max(1, allocation.drawerWidth)}fr` }}>
+            <div className="hanger-zone"><span className="rail" />{Array.from({ length: 4 }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/clothes.png`} alt="" aria-hidden="true" />)}<small>パイプ {allocation.pipeLength}mm</small></div>
+            <div className="drawer-zone">{Array.from({ length: Math.min(6, allocation.drawers) }).map((_, index) => <span key={index} />)}<small>引き出し幅 {allocation.drawerWidth}mm</small></div>
           </div>
           <div className={`dimension-line dimension-width ${widthCalculated ? "calculated" : "fixed"}`}><b>{result.output.width}</b><small>mm</small></div>
           <div className={`depth-label ${depthCalculated ? "calculated" : "fixed"}`}>奥行き {result.output.depth}mm</div>
@@ -323,6 +330,7 @@ export default function Home() {
               <h2>{result.title}</h2><strong>{result.main}</strong>
               {result.usage !== null && <div className="usage"><div><span>収納使用率</span><b>{result.usage}%</b></div><div className="usage-track"><i style={{ width: `${Math.min(100, result.usage)}%` }} /></div></div>}
               {state.storageMode !== "known" && <div className="dimension-result">{result.dimensions.map((dimension) => <div key={dimension.key} className={dimension.calculated ? "calculated" : "fixed"}><small>{dimension.label}{dimension.calculated ? "（算出）" : "（固定）"}</small><b>{dimension.value}<span>mm</span></b></div>)}</div>}
+              {state.category === "clothes" && result.clothingAllocation && <div className="clothing-allocation"><div><small>吊るす収納</small><b>パイプ {result.clothingAllocation.pipeLength}<span>mm</span></b><p>{state.clothes.hanger + state.clothes.heavy}着分</p></div><div><small>たたむ収納</small><b>引き出し幅 {result.clothingAllocation.drawerWidth}<span>mm</span></b><p>{result.clothingAllocation.drawers}段・{result.clothingAllocation.drawerColumns}列</p></div></div>}
               {renderStorageDiagram()}
               <p className="result-note">{result.note}</p>
               <div className="result-details">{result.details.map((detail) => <span key={detail}>{detail}</span>)}</div>
