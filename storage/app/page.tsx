@@ -232,6 +232,7 @@ export default function Home() {
           <source media="(max-width: 620px)" srcSet={`${import.meta.env.BASE_URL}cover-mobile.png`} />
           <img src={`${import.meta.env.BASE_URL}cover-desktop.png`} alt="しまえる？ 持ち物から、ちょうどいい収納を。用途別収納サイズシミュレーター" />
         </picture>
+        <p className="cover-description">靴・衣類・書籍の数から、必要な収納の幅・高さ・奥行きを計算できます。収納サイズが決まっている場合は、持ち物が十分に収まるかも確認できます。</p>
       </section>
 
       <section className="simulator">
