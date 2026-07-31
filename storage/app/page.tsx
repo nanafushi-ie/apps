@@ -185,24 +185,31 @@ export default function Home() {
   };
 
   const shareResult = async (forX = false) => {
+    const xWindow = forX ? window.open("about:blank", "_blank") : null;
     const blob = await createResultImage();
-    if (!blob) return;
+    if (!blob) {
+      xWindow?.close();
+      return;
+    }
     const file = new File([blob], "shimaeru-result.png", { type: "image/png" });
     const text = `${result.title}。${result.main}\n#しまえる #収納 #ななふしの家`;
     try {
+      if (forX) {
+        downloadBlob(blob);
+        const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+        if (xWindow) xWindow.location.href = xUrl;
+        else window.open(xUrl, "_blank", "noopener,noreferrer");
+        setMessage("結果画像を保存し、Xの投稿画面を開きました。保存した画像を添付してください");
+        return;
+      }
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ title: "しまえる？", text, files: [file] });
         return;
       }
-      if (forX) {
-        downloadBlob(blob);
-        window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-        setMessage("画像を保存しました。開いたXの投稿画面で画像を添付してください");
-      } else {
-        await navigator.clipboard.writeText(text);
-        setMessage("共有文をコピーしました。画像は保存ボタンから保存できます");
-      }
+      await navigator.clipboard.writeText(text);
+      setMessage("共有文をコピーしました。画像は保存ボタンから保存できます");
     } catch (error) {
+      xWindow?.close();
       if ((error as DOMException).name !== "AbortError") setMessage("共有できませんでした。画像保存をお試しください");
     }
   };
