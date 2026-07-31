@@ -122,12 +122,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"place" | "items" | "spaces">("place");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [started, setStarted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [fileMessage, setFileMessage] = useState("");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(2);
   const [itemLevel, setItemLevel] = useState<ItemLevel>("標準");
-  const [profileMessage, setProfileMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -136,6 +136,7 @@ export default function Home() {
       setItems(state.items);
       setSpaces(state.spaces);
     }
+    setStarted(localStorage.getItem("storage-simulator-started") === "true");
     setHydrated(true);
   }, []);
 
@@ -151,7 +152,13 @@ export default function Home() {
   const totalCapacity = useMemo(() => spaces.reduce((sum, space) => sum + liters(space), 0), [spaces]);
   const unassigned = items.filter((item) => !item.assignedSpaceId && itemLiters(item) > 0);
   const unassignedLiters = unassigned.reduce((sum, item) => sum + itemLiters(item), 0);
-  const overallPercent = totalNeed ? Math.round((totalCapacity / totalNeed) * 100) : 0;
+  const overallUsagePercent = totalCapacity ? Math.round((totalNeed / totalCapacity) * 100) : totalNeed ? 999 : 0;
+  const balanceLiters = totalCapacity - totalNeed;
+  const capacityStatus = overallUsagePercent > 100
+    ? { label: "容量不足", tone: "danger", note: "100%を超えているため、持ち物が収納容量を上回っています" }
+    : overallUsagePercent > 80
+      ? { label: "ほぼ上限", tone: "tight", note: "収まる計算ですが、増える物のための余白は少なめです" }
+      : { label: "余裕あり", tone: "roomy", note: "100%まで収まります。現在は増える物のための余白もあります" };
 
   const usageFor = (spaceId: string) =>
     items.filter((item) => item.assignedSpaceId === spaceId).reduce((sum, item) => sum + itemLiters(item), 0);
@@ -164,11 +171,11 @@ export default function Home() {
     if (overflow) {
       return `${overflow.space.name}が${fmt(overflow.over)}L超過しています。カードを空きのある収納へ移して、置き場所の偏りを整えましょう。`;
     }
-    if (unassignedLiters > 0) {
-      return `全体容量には余裕があります。まず未配置の${fmt(unassignedLiters)}Lを収納先へ割り当てて、実際の収まり方を確認しましょう。`;
-    }
     if (totalCapacity < totalNeed) {
       return `収納量が${fmt(totalNeed - totalCapacity)}L不足しています。収納寸法か、持ち物の数量を見直してみましょう。`;
+    }
+    if (unassignedLiters > 0) {
+      return `全体容量には余裕があります。まず未配置の${fmt(unassignedLiters)}Lを収納先へ割り当てて、実際の収まり方を確認しましょう。`;
     }
     return `すべて配置できています。空きは${fmt(totalCapacity - totalNeed)}Lです。増えやすい日用品や子ども用品の余白も確認しておくと安心です。`;
   }, [items, spaces, totalCapacity, totalNeed, unassignedLiters]);
@@ -193,9 +200,9 @@ export default function Home() {
         ? { ...item, quantity: suggestions[item.id], assignedSpaceId: null }
         : item
     )));
-    setActiveTab("items");
-    setProfileMessage(`大人${nextAdults}人・子ども${nextChildren}人・持ち物${nextLevel}の目安を入力しました`);
-    window.setTimeout(() => setProfileMessage(""), 2600);
+    setStarted(true);
+    localStorage.setItem("storage-simulator-started", "true");
+    setActiveTab("place");
   };
 
   const addStoragePreset = (preset: StoragePreset) => {
@@ -227,6 +234,8 @@ export default function Home() {
     if (!nextItems.length) throw new Error("empty-project");
     setItems(nextItems);
     setSpaces(nextSpaces);
+    setStarted(true);
+    localStorage.setItem("storage-simulator-started", "true");
     setActiveTab("place");
   };
 
@@ -296,7 +305,7 @@ export default function Home() {
       <div class="pdf-summary">
         <div><span>収納容量</span><b>${fmt(totalCapacity)} L</b></div>
         <div><span>必要量</span><b>${fmt(totalNeed)} L</b></div>
-        <div><span>全体充足率</span><b>${overallPercent}%</b></div>
+        <div><span>全体使用率</span><b>${overallUsagePercent}%</b></div>
         <div><span>未配置</span><b>${fmt(unassignedLiters)} L</b></div>
       </div>
       <div class="pdf-diagnosis"><b>診断</b><p>${escapeHtml(diagnosis)}</p></div>
@@ -362,69 +371,77 @@ export default function Home() {
       </header>
 
       <section className="hero">
-        <div>
+        <div className="hero-copy">
           <p className="eyebrow">STORAGE PLANNING TOOL</p>
-          <h1>「入るはず」を、<br /><em>入る数字</em>に。</h1>
-          <p className="lead">持ち物の量と収納の内寸を入力して、どこに何をしまうかまで試せます。</p>
+          <h1>収納量<br />シミュレーター</h1>
+          <div className="hero-rule" />
+          <p className="hero-slogan">「入るはず」を、<em>入る数字</em>に。</p>
+          <p className="lead">持ち物の量と収納の内寸から、どこに何をしまうかまで計画できます。</p>
         </div>
-        <div className="summary-card">
-          <div className="summary-top">
-            <span>全体の収納充足率</span>
-            <strong className={overallPercent < 100 ? "warn-text" : ""}>{overallPercent}<small>%</small></strong>
-          </div>
-          <div className="summary-track"><i style={{ width: `${Math.min(overallPercent, 100)}%` }} /></div>
-          <div className="summary-stats">
-            <div><span>収納容量</span><b>{fmt(totalCapacity)} L</b></div>
-            <div><span>必要量</span><b>{fmt(totalNeed)} L</b></div>
-            <div><span>未配置</span><b>{fmt(unassignedLiters)} L</b></div>
-          </div>
+        <div className="hero-art">
+          <img src={`${import.meta.env.BASE_URL}og.png`} alt="棚や収納箱を組み合わせた収納計画のイメージ" />
         </div>
       </section>
 
-      <section className="starter-panel">
-        <div className="starter-copy">
-          <p className="eyebrow">START WITH WHAT YOU KNOW</p>
-          <h2>わかるところから、始めましょう。</h2>
-          <p>正確な個数がわからなくても大丈夫。家族構成と持ち物の感覚から仮の数量を入れ、あとから実測値に直せます。</p>
-          <div className="sample-buttons" aria-label="暮らしのサンプル">
-            <button onClick={() => applyFamilyProfile(2, 0, "少なめ")}><b>2人暮らし</b><span>すっきり暮らす</span></button>
-            <button onClick={() => applyFamilyProfile(2, 1, "標準")}><b>子ども1人</b><span>3人家族・標準</span></button>
-            <button onClick={() => applyFamilyProfile(2, 2, "標準")}><b>4人家族</b><span>現在の初期例</span></button>
-            <button onClick={() => applyFamilyProfile(2, 2, "多め")}><b>収納多め</b><span>まとめ買い・趣味あり</span></button>
+      {!started && (
+        <section className="starter-panel">
+          <div className="starter-copy">
+            <p className="eyebrow">START WITH WHAT YOU KNOW</p>
+            <h2>わかるところから、始めましょう。</h2>
+            <p>正確な個数がわからなくても大丈夫。家族構成と持ち物の感覚から仮の数量を入れ、あとから実測値に直せます。</p>
           </div>
-        </div>
-        <div className="profile-form">
-          <div className="profile-row">
-            <label>大人
-              <span className="stepper">
-                <button aria-label="大人を1人減らす" onClick={() => setAdults(Math.max(1, adults - 1))}>−</button>
-                <b>{adults}<small>人</small></b>
-                <button aria-label="大人を1人増やす" onClick={() => setAdults(Math.min(8, adults + 1))}>＋</button>
-              </span>
-            </label>
-            <label>子ども
-              <span className="stepper">
-                <button aria-label="子どもを1人減らす" onClick={() => setChildren(Math.max(0, children - 1))}>−</button>
-                <b>{children}<small>人</small></b>
-                <button aria-label="子どもを1人増やす" onClick={() => setChildren(Math.min(8, children + 1))}>＋</button>
-              </span>
-            </label>
-          </div>
-          <fieldset>
-            <legend>持ち物の量</legend>
-            <div className="level-options">
-              {(["少なめ", "標準", "多め"] as ItemLevel[]).map((level) => (
-                <button key={level} className={itemLevel === level ? "selected" : ""} onClick={() => setItemLevel(level)}>
-                  <span className={`level-dots level-${level}`}>{level === "少なめ" ? "●" : level === "標準" ? "● ●" : "● ● ●"}</span>
-                  <b>{level}</b>
-                </button>
-              ))}
+          <div className="profile-form">
+            <div className="profile-row">
+              <label>大人
+                <span className="stepper">
+                  <button aria-label="大人を1人減らす" onClick={() => setAdults(Math.max(1, adults - 1))}>−</button>
+                  <b>{adults}<small>人</small></b>
+                  <button aria-label="大人を1人増やす" onClick={() => setAdults(Math.min(8, adults + 1))}>＋</button>
+                </span>
+              </label>
+              <label>子ども
+                <span className="stepper">
+                  <button aria-label="子どもを1人減らす" onClick={() => setChildren(Math.max(0, children - 1))}>−</button>
+                  <b>{children}<small>人</small></b>
+                  <button aria-label="子どもを1人増やす" onClick={() => setChildren(Math.min(8, children + 1))}>＋</button>
+                </span>
+              </label>
             </div>
-          </fieldset>
-          <button className="profile-apply" onClick={() => applyFamilyProfile()}>この条件で持ち物の目安を入力</button>
-          <p className={`profile-message ${profileMessage ? "show" : ""}`}>{profileMessage || "入力後もすべての数量・換算値を変更できます"}</p>
-        </div>
-      </section>
+            <fieldset>
+              <legend>持ち物の量</legend>
+              <div className="level-options">
+                {(["少なめ", "標準", "多め"] as ItemLevel[]).map((level) => (
+                  <button key={level} className={itemLevel === level ? "selected" : ""} onClick={() => setItemLevel(level)}>
+                    <span className={`level-dots level-${level}`}>{level === "少なめ" ? "●" : level === "標準" ? "● ●" : "● ● ●"}</span>
+                    <b>{level}</b>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <button className="profile-apply" onClick={() => applyFamilyProfile()}>この条件でシミュレーションを始める</button>
+            <p className="profile-message">開始後もすべての数量・換算値を変更できます</p>
+          </div>
+        </section>
+      )}
+
+      {started && (
+        <>
+        <section className={`summary-card summary-${capacityStatus.tone}`}>
+          <div className="summary-top">
+            <div>
+              <span>全体の収納使用予定</span>
+              <b className="status-badge">{capacityStatus.label}</b>
+            </div>
+            <strong>{Math.min(overallUsagePercent, 999)}<small>%</small></strong>
+          </div>
+          <div className="summary-track"><i style={{ width: `${Math.min(overallUsagePercent, 100)}%` }} /></div>
+          <p className="summary-note">{capacityStatus.note}</p>
+          <div className="summary-stats">
+            <div><span>収納容量</span><b>{fmt(totalCapacity)} L</b></div>
+            <div><span>必要量</span><b>{fmt(totalNeed)} L</b></div>
+            <div><span>{balanceLiters >= 0 ? "残る余白" : "不足量"}</span><b>{fmt(Math.abs(balanceLiters))} L</b></div>
+          </div>
+        </section>
 
       <section className="diagnosis">
         <span aria-hidden="true">!</span>
@@ -560,7 +577,9 @@ export default function Home() {
         </section>
       )}
 
-      <footer><span>データはこの端末に自動保存されます</span><button onClick={() => { if (confirm("入力内容を初期状態に戻しますか？")) { setItems(initialItems); setSpaces(initialSpaces); } }}>初期状態に戻す</button></footer>
+      <footer><span>データはこの端末に自動保存されます</span><button onClick={() => { if (confirm("入力内容を初期状態に戻しますか？")) { setItems(initialItems); setSpaces(initialSpaces); setStarted(false); localStorage.removeItem("storage-simulator-started"); } }}>初期状態に戻す</button></footer>
+        </>
+      )}
     </main>
   );
 }
