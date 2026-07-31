@@ -424,7 +424,8 @@ function renderTable(result) {
 function shareText(result) {
   const last = result.data[result.data.length - 1];
   const saving = last.noSolar - last.solar;
-  return `${result.inputs.prefecture}・太陽光${result.inputs.panelCapacity.toFixed(1)}kWでシミュレーションしました。\n\n太陽光パネルのみで元が取れるまで：${formatBreakEven(result.solarCrossing.final)}\n30年後に減らせる金額：約${yen.format(Math.max(saving, 0) / 10000)}万円\n\n太陽光発電の導入効果をシミュレーションできます。\n${TOP_PAGE_URL}\n\n#ななふしの家 #太陽光発電 #住宅`;
+  const area = $("hideSharePrefecture").checked ? "" : `${result.inputs.prefecture}・`;
+  return `${area}太陽光${result.inputs.panelCapacity.toFixed(1)}kWでシミュレーションしました。\n\n太陽光パネルのみで元が取れるまで：${formatBreakEven(result.solarCrossing.final)}\n30年後に減らせる金額：約${yen.format(Math.max(saving, 0) / 10000)}万円\n\n太陽光発電の導入効果をシミュレーションできます。\n${TOP_PAGE_URL}\n\n#ななふしの家 #太陽光発電 #住宅`;
 }
 
 function drawShareImage(result) {
@@ -497,7 +498,10 @@ function drawShareImage(result) {
   ctx.fillText("SOLAR COST FORECAST / 30 YEARS", 64, 101);
   ctx.fillStyle = ink;
   ctx.font = '600 54px "Hiragino Mincho ProN", "Yu Mincho", serif';
-  ctx.fillText(`${result.inputs.prefecture}の太陽光`, 64, 177);
+  const shareTitle = $("hideSharePrefecture").checked
+    ? "わが家の太陽光"
+    : `${result.inputs.prefecture}の太陽光`;
+  ctx.fillText(shareTitle, 64, 177);
   ctx.font = '600 62px "Hiragino Mincho ProN", "Yu Mincho", serif';
   ctx.fillText("何年で元が取れる？", 64, 247);
   ctx.strokeStyle = orange;
@@ -786,6 +790,7 @@ $("copyShareText").addEventListener("click", async (event) => {
     setTimeout(() => (button.textContent = original), 1800);
   }
 });
+$("hideSharePrefecture").addEventListener("change", () => drawShareImage(latest));
 document.querySelectorAll("[data-close-modal]").forEach((node) => node.addEventListener("click", closeShareModal));
 document.querySelectorAll(".info-button").forEach((button) => {
   button.setAttribute("aria-label", `${button.dataset.helpTitle}の説明を開く`);

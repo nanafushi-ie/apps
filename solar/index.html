@@ -8,7 +8,7 @@
       content="地域や電気使用量から、太陽光発電と蓄電池の長期コストを比較できるシミュレーター"
     />
     <title>ひだまりシミュレータ｜太陽光コストシミュレーター</title>
-    <link rel="stylesheet" href="./styles.css?v=20260730-8" />
+    <link rel="stylesheet" href="./styles.css?v=20260730-10" />
   </head>
   <body>
     <header class="site-header">
@@ -476,6 +476,14 @@
         <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
         <p class="step-label">SHARE YOUR FORECAST</p>
         <h2 id="shareTitle">結果をシェア</h2>
+        <label class="share-privacy-option">
+          <span class="share-privacy-icon" aria-hidden="true">●</span>
+          <span>
+            <strong>都道府県名を表示しない</strong>
+            <small>SNS画像と投稿本文の地域名を伏せます</small>
+          </span>
+          <input id="hideSharePrefecture" type="checkbox" checked />
+        </label>
         <canvas id="shareCanvas" width="1080" height="1350"></canvas>
         <div class="share-buttons">
           <button id="nativeShare" class="primary-button" type="button">画像付きで共有</button>
@@ -501,6 +509,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260730-9"></script>
+    <script src="./app.js?v=20260730-10"></script>
   </body>
 </html>

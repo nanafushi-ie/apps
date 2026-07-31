@@ -497,6 +497,49 @@ th { color: var(--muted); font-size: 9px; }
   border-radius: 15px;
   background: #f7f4e9;
 }
+.share-privacy-option {
+  min-height: 58px;
+  margin: 0 0 14px;
+  padding: 10px 13px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #c4ded5;
+  border-radius: 13px;
+  background: #eef6f2;
+}
+.share-privacy-option strong,
+.share-privacy-option small { display: block; }
+.share-privacy-option strong { font-size: 13px; }
+.share-privacy-option small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.share-privacy-option input {
+  width: 42px;
+  height: 24px;
+  accent-color: var(--leaf);
+}
+.share-privacy-icon {
+  position: relative;
+  width: 25px;
+  height: 29px;
+  display: grid;
+  place-items: end center;
+  border: 2px solid var(--leaf);
+  border-radius: 7px;
+  color: var(--leaf);
+  font-size: 9px;
+  line-height: 21px;
+}
+.share-privacy-icon::before {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 10px;
+  margin: -9px 0 0;
+  border: 2px solid var(--leaf);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
 .share-buttons { margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .social-button { border: 0; color: #fff; }
 .x-button { background: #111; }
