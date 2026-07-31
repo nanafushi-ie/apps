@@ -35,6 +35,15 @@ type StorageProject = {
   spaces: StorageSpace[];
 };
 
+type ItemLevel = "少なめ" | "標準" | "多め";
+
+type StoragePreset = Omit<StorageSpace, "id"> & {
+  presetId: string;
+  sizeLabel: string;
+  description: string;
+  visual: "closet" | "wic1" | "wic2" | "pantry" | "entry" | "oshiire";
+};
+
 const initialItems: Item[] = [
   { id: "on", category: "衣類（オンシーズン）", unitLabel: "衣装ケース", quantity: 2, literPerUnit: 70, assignedSpaceId: null },
   { id: "off", category: "衣類（オフシーズン）", unitLabel: "衣装ケース", quantity: 3, literPerUnit: 70, assignedSpaceId: null },
@@ -52,6 +61,33 @@ const initialSpaces: StorageSpace[] = [
   { id: "wic", name: "ファミリークローゼット", widthMm: 2400, depthMm: 900, heightMm: 2300, effectiveRate: 0.7, tag: "衣類用" },
   { id: "pantry", name: "パントリー", widthMm: 1200, depthMm: 450, heightMm: 2200, effectiveRate: 0.7, tag: "食品・日用品" },
 ];
+
+const storagePresets: StoragePreset[] = [
+  { presetId: "closet", name: "半間クローゼット", widthMm: 900, depthMm: 600, heightMm: 2300, effectiveRate: 0.72, tag: "衣類用", sizeLabel: "幅 約0.9m", description: "個室にある一般的な壁面収納", visual: "closet" },
+  { presetId: "wic1", name: "1畳WIC", widthMm: 1800, depthMm: 900, heightMm: 2300, effectiveRate: 0.58, tag: "衣類用", sizeLabel: "約1畳", description: "片側収納＋通路のコンパクト型", visual: "wic1" },
+  { presetId: "wic2", name: "2畳ファミリークローゼット", widthMm: 1800, depthMm: 1800, heightMm: 2300, effectiveRate: 0.52, tag: "衣類用", sizeLabel: "約2畳", description: "両側収納＋中央通路の家族用", visual: "wic2" },
+  { presetId: "pantry", name: "小型パントリー", widthMm: 1200, depthMm: 450, heightMm: 2200, effectiveRate: 0.72, tag: "食品・日用品", sizeLabel: "幅 約1.2m", description: "可動棚を想定した壁面収納", visual: "pantry" },
+  { presetId: "entry", name: "玄関土間収納", widthMm: 1800, depthMm: 900, heightMm: 2300, effectiveRate: 0.6, tag: "外用品", sizeLabel: "約1畳", description: "靴・外遊び用品・防災用品向け", visual: "entry" },
+  { presetId: "oshiire", name: "一般的な押入れ", widthMm: 1800, depthMm: 850, heightMm: 2300, effectiveRate: 0.78, tag: "寝具・季節物", sizeLabel: "幅 約1.8m", description: "中段のある奥行き深めの収納", visual: "oshiire" },
+];
+
+const suggestedQuantities = (adults: number, children: number, level: ItemLevel) => {
+  const people = adults + children;
+  const multiplier = level === "少なめ" ? 0.72 : level === "多め" ? 1.35 : 1;
+  const rounded = (value: number) => Math.max(0, Math.round(value * multiplier));
+  return {
+    on: rounded(adults * 1.2 + children * 0.6),
+    off: rounded(adults * 1.4 + children * 0.8),
+    hanger: rounded(adults * 25 + children * 12),
+    bedding: Math.max(1, rounded(people)),
+    books: rounded(1 + adults * 0.6 + children * 0.4),
+    kitchen: rounded(3 + people * 0.6),
+    daily: rounded(1.5 + people * 0.8),
+    kids: children ? Math.max(1, rounded(children * 2.5)) : 0,
+    outdoor: rounded(1 + people * 0.35),
+    other: rounded(people * 0.25),
+  } satisfies Record<string, number>;
+};
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const liters = (space: StorageSpace) =>
@@ -88,6 +124,10 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
   const [fileMessage, setFileMessage] = useState("");
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(2);
+  const [itemLevel, setItemLevel] = useState<ItemLevel>("標準");
+  const [profileMessage, setProfileMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -141,6 +181,28 @@ export default function Home() {
   const assign = (itemId: string, spaceId: string | null) => {
     updateItem(itemId, { assignedSpaceId: spaceId });
     setDraggedId(null);
+  };
+
+  const applyFamilyProfile = (nextAdults = adults, nextChildren = children, nextLevel = itemLevel) => {
+    const suggestions: Record<string, number> = suggestedQuantities(nextAdults, nextChildren, nextLevel);
+    setAdults(nextAdults);
+    setChildren(nextChildren);
+    setItemLevel(nextLevel);
+    setItems((current) => current.map((item) => (
+      item.id in suggestions
+        ? { ...item, quantity: suggestions[item.id], assignedSpaceId: null }
+        : item
+    )));
+    setActiveTab("items");
+    setProfileMessage(`大人${nextAdults}人・子ども${nextChildren}人・持ち物${nextLevel}の目安を入力しました`);
+    window.setTimeout(() => setProfileMessage(""), 2600);
+  };
+
+  const addStoragePreset = (preset: StoragePreset) => {
+    const { presetId: _presetId, sizeLabel: _sizeLabel, description: _description, visual: _visual, ...space } = preset;
+    setSpaces((current) => [...current, { ...space, id: uid() }]);
+    setFileMessage(`${preset.name}を追加しました。寸法は下で調整できます`);
+    window.setTimeout(() => setFileMessage(""), 2400);
   };
 
   const projectData = (): StorageProject => ({
@@ -319,6 +381,51 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="starter-panel">
+        <div className="starter-copy">
+          <p className="eyebrow">START WITH WHAT YOU KNOW</p>
+          <h2>わかるところから、始めましょう。</h2>
+          <p>正確な個数がわからなくても大丈夫。家族構成と持ち物の感覚から仮の数量を入れ、あとから実測値に直せます。</p>
+          <div className="sample-buttons" aria-label="暮らしのサンプル">
+            <button onClick={() => applyFamilyProfile(2, 0, "少なめ")}><b>2人暮らし</b><span>すっきり暮らす</span></button>
+            <button onClick={() => applyFamilyProfile(2, 1, "標準")}><b>子ども1人</b><span>3人家族・標準</span></button>
+            <button onClick={() => applyFamilyProfile(2, 2, "標準")}><b>4人家族</b><span>現在の初期例</span></button>
+            <button onClick={() => applyFamilyProfile(2, 2, "多め")}><b>収納多め</b><span>まとめ買い・趣味あり</span></button>
+          </div>
+        </div>
+        <div className="profile-form">
+          <div className="profile-row">
+            <label>大人
+              <span className="stepper">
+                <button aria-label="大人を1人減らす" onClick={() => setAdults(Math.max(1, adults - 1))}>−</button>
+                <b>{adults}<small>人</small></b>
+                <button aria-label="大人を1人増やす" onClick={() => setAdults(Math.min(8, adults + 1))}>＋</button>
+              </span>
+            </label>
+            <label>子ども
+              <span className="stepper">
+                <button aria-label="子どもを1人減らす" onClick={() => setChildren(Math.max(0, children - 1))}>−</button>
+                <b>{children}<small>人</small></b>
+                <button aria-label="子どもを1人増やす" onClick={() => setChildren(Math.min(8, children + 1))}>＋</button>
+              </span>
+            </label>
+          </div>
+          <fieldset>
+            <legend>持ち物の量</legend>
+            <div className="level-options">
+              {(["少なめ", "標準", "多め"] as ItemLevel[]).map((level) => (
+                <button key={level} className={itemLevel === level ? "selected" : ""} onClick={() => setItemLevel(level)}>
+                  <span className={`level-dots level-${level}`}>{level === "少なめ" ? "●" : level === "標準" ? "● ●" : "● ● ●"}</span>
+                  <b>{level}</b>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <button className="profile-apply" onClick={() => applyFamilyProfile()}>この条件で持ち物の目安を入力</button>
+          <p className={`profile-message ${profileMessage ? "show" : ""}`}>{profileMessage || "入力後もすべての数量・換算値を変更できます"}</p>
+        </div>
+      </section>
+
       <section className="diagnosis">
         <span aria-hidden="true">!</span>
         <div><b>いまの診断</b><p>{diagnosis}</p></div>
@@ -412,7 +519,27 @@ export default function Home() {
       {activeTab === "spaces" && (
         <section className="editor-panel">
           <div className="editor-heading"><div><p>STORAGE SPACES</p><h2>収納スペースの内寸</h2></div><button className="primary" onClick={() => setSpaces((v) => [...v, { id: uid(), name: "新しい収納", widthMm: 1200, depthMm: 600, heightMm: 2200, effectiveRate: 0.7, tag: "" }])}>＋ 収納を追加</button></div>
-          <p className="helper">通路や棚板を考慮した有効率は70%を目安に、収納の形に合わせて調整できます。</p>
+          <p className="helper">寸法がわからない場合は、イメージに近い収納を選んでください。一般的な仮寸法が入り、あとから自由に変更できます。</p>
+          <div className="preset-section">
+            <div className="preset-title">
+              <div><span>寸法がまだわからない方へ</span><h3>見た目と広さから選ぶ</h3></div>
+              <p>選ぶと収納リストに追加されます</p>
+            </div>
+            <div className="preset-grid">
+              {storagePresets.map((preset) => (
+                <button className="preset-card" key={preset.presetId} onClick={() => addStoragePreset(preset)}>
+                  <StorageVisual type={preset.visual} />
+                  <span className="preset-card-copy">
+                    <small>{preset.sizeLabel}</small>
+                    <b>{preset.name}</b>
+                    <em>{preset.description}</em>
+                    <strong>目安 {fmt(liters({ ...preset, id: preset.presetId }))} L <i>＋</i></strong>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="manual-divider"><span>追加した収納の寸法を確認・調整</span></div>
           <div className="space-edit-grid">
             {spaces.map((space) => (
               <div className="space-edit-card" key={space.id}>
@@ -448,5 +575,23 @@ function ItemCard({ item, compact = false, onDrag }: { item: Item; compact?: boo
       <div><b>{item.category}</b><p>{fmt(item.quantity)} {item.unitLabel} × {fmt(item.literPerUnit)} L</p></div>
       <strong>{fmt(itemLiters(item))}<small>L</small></strong>
     </div>
+  );
+}
+
+function StorageVisual({ type }: { type: StoragePreset["visual"] }) {
+  return (
+    <span className={`storage-visual visual-${type}`} aria-hidden="true">
+      <span className="visual-wall">
+        <i className="shelf shelf-a" />
+        <i className="shelf shelf-b" />
+        <i className="rail" />
+        <i className="box box-a" />
+        <i className="box box-b" />
+        <i className="coat coat-a" />
+        <i className="coat coat-b" />
+      </span>
+      <span className="visual-floor"><i /></span>
+      <span className="visual-person"><i /></span>
+    </span>
   );
 }
