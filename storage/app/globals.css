@@ -106,6 +106,11 @@ button { color: inherit; }
 .clothing-allocation b { margin-top: 5px; color: var(--green); font-size: 17px; }
 .clothing-allocation b span { margin-left: 2px; font-size: 10px; font-weight: normal; }
 .clothing-allocation p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.layout-recommendation { margin-top: 12px; padding: 15px 16px; border-left: 4px solid var(--orange); border-radius: 4px 9px 9px 4px; background: #f7ede5; }
+.layout-recommendation small, .layout-recommendation b { display: block; }
+.layout-recommendation small { color: var(--muted); font-size: 10px; }
+.layout-recommendation b { margin-top: 3px; color: var(--orange); font-family: "Yu Mincho", serif; font-size: 18px; }
+.layout-recommendation p { margin: 5px 0 0; color: #59675f; font-size: 12px; line-height: 1.6; }
 
 .elevation-wrap { position: relative; margin: 25px 4px 18px 34px; padding: 0 0 34px; }
 .storage-elevation { position: relative; min-height: 190px; border: 5px solid var(--green); background: #fffdf7; box-shadow: inset 0 0 0 1px rgba(52,92,73,.08); }
@@ -128,6 +133,12 @@ button { color: inherit; }
 .elevation-shelf-row img { width: 100%; max-width: 43px; max-height: 38px; object-fit: contain; }
 .elevation-shelf-row .empty-slot { margin: 5px 2px; border-radius: 3px; background: #edf2e9; }
 .clothes-elevation { display: grid; grid-template-columns: 1.7fr 1fr; }
+.clothes-elevation.layout-below, .clothes-elevation.layout-split { display: flex; }
+.regular-stack { min-width: 0; display: flex; flex-direction: column; border-right: 4px solid var(--green); }
+.regular-stack.full-stack { flex: 1; border-right: 0; }
+.regular-stack .hanger-zone { min-height: 95px; flex: 1.5; border-right: 0; border-bottom: 4px solid var(--green); }
+.regular-stack .stacked-drawers { min-height: 70px; flex: 1; }
+.coat-zone { min-width: 72px; border-right: 0; }
 .hanger-zone { position: relative; padding: 36px 9px 22px; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; border-right: 4px solid var(--green); }
 .hanger-zone .rail { position: absolute; left: 8px; right: 8px; top: 27px; height: 4px; border-radius: 4px; background: var(--green); }
 .hanger-zone img { width: 25%; margin: 0 -4px; object-fit: contain; }

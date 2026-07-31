@@ -81,7 +81,7 @@ export default function Home() {
     let count = 0;
     let unit = "個";
     let extraNote = "";
-    let clothingAllocation: { pipeLength: number; drawerWidth: number; drawers: number; drawerColumns: number } | null = null;
+    let clothingAllocation: { layout: "side" | "below" | "split"; layoutLabel: string; reason: string; pipeLength: number; regularPipe: number; coatPipe: number; drawerWidth: number; drawers: number; drawerColumns: number; drawerRows: number } | null = null;
 
     if (state.category === "shoes") {
       const { adult, child, boots } = state.shoes;
@@ -105,16 +105,35 @@ export default function Home() {
       const { hanger, heavy, folded } = state.clothes;
       count = hanger + heavy + folded;
       unit = "着";
-      const pipeLength = (hanger * 35 + heavy * 65) * marginFactor;
+      const regularPipe = hanger > 0 ? Math.max(600, roundUp(hanger * 35 * marginFactor, 100)) : 0;
+      const coatPipe = heavy > 0 ? Math.max(600, roundUp(heavy * 65 * marginFactor, 100)) : 0;
+      const pipeLength = regularPipe + coatPipe;
       const drawers = folded > 0 ? Math.max(1, Math.ceil((folded * marginFactor) / 18)) : 0;
-      const drawerColumns = drawers > 0 ? Math.ceil(drawers / 6) : 0;
-      const drawerWidth = drawerColumns * 600;
-      const roundedPipeLength = pipeLength > 0 ? Math.max(600, roundUp(pipeLength, 100)) : 0;
-      clothingAllocation = { pipeLength: roundedPipeLength, drawerWidth, drawers, drawerColumns };
-      recommended = { width: Math.max(600, roundedPipeLength + drawerWidth), height: Math.max(1800, Math.min(6, drawers) * 220 + 200), depth: 600 };
+      const makeDrawers = (maxRows: number) => {
+        const columns = drawers > 0 ? Math.ceil(drawers / maxRows) : 0;
+        return { columns, rows: columns > 0 ? Math.ceil(drawers / columns) : 0, width: columns * 600 };
+      };
+      const sideDrawers = makeDrawers(6);
+      const belowDrawers = makeDrawers(heavy > 0 ? 1 : 2);
+      const splitDrawers = makeDrawers(2);
+      const candidates = [
+        { layout: "side" as const, layoutLabel: "横並び", reason: "吊るす収納と引き出しを左右に分ける、わかりやすい配置です。", width: Math.max(600, pipeLength + sideDrawers.width), height: Math.max(1800, sideDrawers.rows * 220 + 200), drawers: sideDrawers },
+        { layout: "below" as const, layoutLabel: "パイプ下に引き出し", reason: "パイプと引き出しを上下に重ね、横幅を抑える配置です。", width: Math.max(600, pipeLength, belowDrawers.width), height: Math.max(1800, (heavy > 0 ? 1550 : 1200) + belowDrawers.rows * 220), drawers: belowDrawers },
+        { layout: "split" as const, layoutLabel: "シャツ下＋コート分離", reason: "短い衣類の下に引き出しを置き、丈の長い衣類だけを隣に分ける配置です。", width: Math.max(600, Math.max(regularPipe, splitDrawers.width) + coatPipe), height: Math.max(1800, 1200 + splitDrawers.rows * 220), drawers: splitDrawers },
+      ].filter((candidate) => candidate.layout !== "split" || (hanger > 0 && heavy > 0 && drawers > 0));
+      const fixedWidth = !dimensionUnknown("width") ? d.width : null;
+      const fixedHeight = !dimensionUnknown("height") ? d.height : null;
+      const fixedDepth = !dimensionUnknown("depth") ? d.depth : null;
+      const score = (candidate: typeof candidates[number]) => {
+        const overflow = Math.max(0, candidate.width - (fixedWidth ?? candidate.width)) * 5 + Math.max(0, candidate.height - (fixedHeight ?? candidate.height)) * 5 + Math.max(0, 600 - (fixedDepth ?? 600)) * 5;
+        return overflow + candidate.width + Math.max(0, candidate.height - 2000) * 3;
+      };
+      const chosen = [...candidates].sort((a, b) => score(a) - score(b))[0];
+      clothingAllocation = { layout: chosen.layout, layoutLabel: chosen.layoutLabel, reason: chosen.reason, pipeLength, regularPipe, coatPipe, drawerWidth: chosen.drawers.width, drawers, drawerColumns: chosen.drawers.columns, drawerRows: chosen.drawers.rows };
+      recommended = { width: chosen.width, height: chosen.height, depth: 600 };
       requiredLength = pipeLength;
       details = [`ハンガー ${hanger}着`, `コート・厚手 ${heavy}着`, `たたむ衣類 ${folded}着`];
-      extraNote = `ハンガーパイプ${roundedPipeLength}mmと、幅${drawerWidth}mmの引き出し収納（${drawers}段）に分けて割り付けています。`;
+      extraNote = `おすすめは「${chosen.layoutLabel}」です。${chosen.reason}`;
     }
 
     const output = { ...recommended };
@@ -250,13 +269,25 @@ export default function Home() {
 
     if (state.category === "clothes") {
       const allocation = result.clothingAllocation!;
+      const drawerBlocks = Array.from({ length: Math.min(6, allocation.drawers) }).map((_, index) => <span key={index} />);
+      const hangingIcons = Array.from({ length: 4 }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/clothes.png`} alt="" aria-hidden="true" />);
+      const clothesLayout = allocation.layout === "split" ? (
+        <>
+          <div className="regular-stack" style={{ flex: Math.max(1, Math.max(allocation.regularPipe, allocation.drawerWidth)) }}>
+            <div className="hanger-zone regular-hanger"><span className="rail" />{hangingIcons}<small>シャツ用 {allocation.regularPipe}mm</small></div>
+            <div className="drawer-zone stacked-drawers">{drawerBlocks}<small>引き出し幅 {allocation.drawerWidth}mm</small></div>
+          </div>
+          <div className="hanger-zone coat-zone" style={{ flex: Math.max(1, allocation.coatPipe) }}><span className="rail" />{hangingIcons.slice(0, 2)}<small>コート用 {allocation.coatPipe}mm</small></div>
+        </>
+      ) : allocation.layout === "below" ? (
+        <div className="regular-stack full-stack"><div className="hanger-zone regular-hanger"><span className="rail" />{hangingIcons}<small>パイプ {allocation.pipeLength}mm</small></div><div className="drawer-zone stacked-drawers">{drawerBlocks}<small>引き出し幅 {allocation.drawerWidth}mm</small></div></div>
+      ) : (
+        <><div className="hanger-zone"><span className="rail" />{hangingIcons}<small>パイプ {allocation.pipeLength}mm</small></div><div className="drawer-zone">{drawerBlocks}<small>引き出し幅 {allocation.drawerWidth}mm</small></div></>
+      );
       return (
         <div className="elevation-wrap">
           <div className={`dimension-line dimension-height ${heightCalculated ? "calculated" : "fixed"}`}><b>{result.output.height}</b><small>mm</small></div>
-          <div className="storage-elevation clothes-elevation" style={{ gridTemplateColumns: `${Math.max(1, allocation.pipeLength)}fr ${Math.max(1, allocation.drawerWidth)}fr` }}>
-            <div className="hanger-zone"><span className="rail" />{Array.from({ length: 4 }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/clothes.png`} alt="" aria-hidden="true" />)}<small>パイプ {allocation.pipeLength}mm</small></div>
-            <div className="drawer-zone">{Array.from({ length: Math.min(6, allocation.drawers) }).map((_, index) => <span key={index} />)}<small>引き出し幅 {allocation.drawerWidth}mm</small></div>
-          </div>
+          <div className={`storage-elevation clothes-elevation layout-${allocation.layout}`} style={allocation.layout === "side" ? { gridTemplateColumns: `${Math.max(1, allocation.pipeLength)}fr ${Math.max(1, allocation.drawerWidth)}fr` } : undefined}>{clothesLayout}</div>
           <div className={`dimension-line dimension-width ${widthCalculated ? "calculated" : "fixed"}`}><b>{result.output.width}</b><small>mm</small></div>
           <div className={`depth-label ${depthCalculated ? "calculated" : "fixed"}`}>奥行き {result.output.depth}mm</div>
           <div className="diagram-summary">ハンガー {state.clothes.hanger + state.clothes.heavy}着・たたむ衣類 {state.clothes.folded}着</div>
@@ -330,7 +361,7 @@ export default function Home() {
               <h2>{result.title}</h2><strong>{result.main}</strong>
               {result.usage !== null && <div className="usage"><div><span>収納使用率</span><b>{result.usage}%</b></div><div className="usage-track"><i style={{ width: `${Math.min(100, result.usage)}%` }} /></div></div>}
               {state.storageMode !== "known" && <div className="dimension-result">{result.dimensions.map((dimension) => <div key={dimension.key} className={dimension.calculated ? "calculated" : "fixed"}><small>{dimension.label}{dimension.calculated ? "（算出）" : "（固定）"}</small><b>{dimension.value}<span>mm</span></b></div>)}</div>}
-              {state.category === "clothes" && result.clothingAllocation && <div className="clothing-allocation"><div><small>吊るす収納</small><b>パイプ {result.clothingAllocation.pipeLength}<span>mm</span></b><p>{state.clothes.hanger + state.clothes.heavy}着分</p></div><div><small>たたむ収納</small><b>引き出し幅 {result.clothingAllocation.drawerWidth}<span>mm</span></b><p>{result.clothingAllocation.drawers}段・{result.clothingAllocation.drawerColumns}列</p></div></div>}
+              {state.category === "clothes" && result.clothingAllocation && <><div className="layout-recommendation"><small>おすすめの割り付け</small><b>{result.clothingAllocation.layoutLabel}</b><p>{result.clothingAllocation.reason}</p></div><div className="clothing-allocation"><div><small>吊るす収納</small><b>パイプ合計 {result.clothingAllocation.pipeLength}<span>mm</span></b><p>{result.clothingAllocation.layout === "split" ? `シャツ用${result.clothingAllocation.regularPipe}mm・コート用${result.clothingAllocation.coatPipe}mm` : `${state.clothes.hanger + state.clothes.heavy}着分`}</p></div><div><small>たたむ収納</small><b>引き出し幅 {result.clothingAllocation.drawerWidth}<span>mm</span></b><p>{result.clothingAllocation.drawers}段を{result.clothingAllocation.drawerColumns}列 × 最大{result.clothingAllocation.drawerRows}段で配置</p></div></div></>}
               {renderStorageDiagram()}
               <p className="result-note">{result.note}</p>
               <div className="result-details">{result.details.map((detail) => <span key={detail}>{detail}</span>)}</div>
