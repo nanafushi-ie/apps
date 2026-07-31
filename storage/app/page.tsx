@@ -228,9 +228,10 @@ export default function Home() {
       <header className="site-header"><a className="brand" href="#" aria-label="しまえる？ トップ"><span className="brand-mark">し</span><span>しまえる？</span></a><p>用途別収納サイズシミュレーター</p></header>
 
       <section className="hero">
-        <p className="eyebrow">STORAGE SIZE GUIDE</p>
-        <p className="hero-lead">持ち物の数から、ちょうどいい収納を。<br />決まっている寸法だけを使って、残りのサイズも計算できます。</p>
-        <div className="hero-shelf" aria-hidden="true"><span>▰</span><span>▥</span><span>▰</span><span>▥</span><span>▰</span></div>
+        <picture>
+          <source media="(max-width: 620px)" srcSet={`${import.meta.env.BASE_URL}cover-mobile.png`} />
+          <img src={`${import.meta.env.BASE_URL}cover-desktop.png`} alt="しまえる？ 持ち物から、ちょうどいい収納を。用途別収納サイズシミュレーター" />
+        </picture>
       </section>
 
       <section className="simulator">
