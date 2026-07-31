@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 
-const title = "しまえる？｜用途別収納サイズシミュレーター";
-const description = "靴、衣類、本の数から必要な収納サイズを計算。収納寸法が決まっていれば、十分に収まるか確認できます。";
+const title = "収納量シミュレーター";
+const description = "持ち物の量と収納の内寸から、どこに何をしまうかまで試せる収納計画ツール。";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -20,7 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="ja">
       <body>{children}</body>
