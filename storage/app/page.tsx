@@ -371,25 +371,13 @@ export default function Home() {
       </header>
 
       <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">STORAGE PLANNING TOOL</p>
-          <h1>収納量<br />シミュレーター</h1>
-          <div className="hero-rule" />
-          <p className="hero-slogan">「入るはず」を、<em>入る数字</em>に。</p>
-          <p className="lead">持ち物の量と収納の内寸から、どこに何をしまうかまで計画できます。</p>
-        </div>
         <div className="hero-art">
-          <img src={`${import.meta.env.BASE_URL}og.png`} alt="棚や収納箱を組み合わせた収納計画のイメージ" />
+          <img src={`${import.meta.env.BASE_URL}og.png`} alt="収納量シミュレーター。「入るはず」を、入る数字に。" />
         </div>
       </section>
 
       {!started && (
         <section className="starter-panel">
-          <div className="starter-copy">
-            <p className="eyebrow">START WITH WHAT YOU KNOW</p>
-            <h2>わかるところから、始めましょう。</h2>
-            <p>正確な個数がわからなくても大丈夫。家族構成と持ち物の感覚から仮の数量を入れ、あとから実測値に直せます。</p>
-          </div>
           <div className="profile-form">
             <div className="profile-row">
               <label>大人
