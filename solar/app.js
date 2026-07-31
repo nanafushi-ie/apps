@@ -33,10 +33,13 @@ let latest = null;
 let chartGeometry = null;
 
 function fillPrefectures() {
-  $("prefecture").innerHTML = PREFECTURES.map(
-    ([name, yieldValue]) =>
-      `<option value="${name}" data-yield="${yieldValue}" ${name === "宮城県" ? "selected" : ""}>${name}</option>`
-  ).join("");
+  $("prefecture").innerHTML = [
+    '<option value="" selected>都道府県を選択</option>',
+    ...PREFECTURES.map(
+      ([name, yieldValue]) =>
+        `<option value="${name}" data-yield="${yieldValue}">${name}</option>`
+    )
+  ].join("");
 }
 
 function numberValue(id) {
@@ -367,6 +370,34 @@ function renderChart(result) {
     .join("");
 }
 
+function renderEmptyChart() {
+  const size = resizeCanvas();
+  const ctx = chartCtx;
+  const padding = { top: 24, right: 18, bottom: 42, left: 58 };
+  const plotW = size.width - padding.left - padding.right;
+  const plotH = size.height - padding.top - padding.bottom;
+  ctx.clearRect(0, 0, size.width, size.height);
+  ctx.strokeStyle = "#e6e8e2";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = padding.top + (plotH / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + plotW, y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#8a9692";
+  ctx.font = '600 13px "Hiragino Sans", sans-serif';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("都道府県を選択するとグラフを表示します", size.width / 2, size.height / 2);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  chartGeometry = null;
+  $("legend").innerHTML = "";
+  $("chartTooltip").hidden = true;
+}
+
 function renderInsights(result) {
   const inputs = result.inputs;
   const last = result.data[result.data.length - 1];
@@ -639,14 +670,27 @@ function drawShareImage(result) {
 
 function update() {
   applyPresetState();
-  latest = calculate();
   $("priceGrowthOutput").textContent = `${numberValue("priceGrowth").toFixed(1)}%`;
   $("selfConsumptionOutput").textContent = `${numberValue("selfConsumption")}%`;
   $("batteryConsumptionOutput").textContent = `${numberValue("batteryConsumption")}%`;
-  const monthlyUsage = latest.inputs.usage / 12;
-  const monthlyCost = monthlyUsage * latest.inputs.electricityPrice;
+  const monthlyUsage = numberValue("annualUsage") / 12;
+  const monthlyCost = monthlyUsage * numberValue("electricityPrice");
   $("monthlyCostEstimate").textContent =
     `月平均の電気代の目安：約${yen.format(monthlyCost)}円（使用量 約${yen.format(monthlyUsage)}kWh）`;
+  const hasPrefecture = Boolean($("prefecture").value);
+  $("resultsEmpty").hidden = hasPrefecture;
+  $("shareHeader").disabled = !hasPrefecture;
+  $("shareButton").disabled = !hasPrefecture;
+  $("downloadImage").disabled = !hasPrefecture;
+  $("resultsEmpty").closest(".results").classList.toggle("is-empty", !hasPrefecture);
+  if (!hasPrefecture) {
+    latest = null;
+    $("regionNote").textContent = "";
+    $("batteryFields").hidden = !$("includeBattery").checked;
+    renderEmptyChart();
+    return;
+  }
+  latest = calculate();
   $("batteryFields").hidden = !latest.inputs.includeBattery;
   renderSummary(latest);
   renderChart(latest);
@@ -656,6 +700,7 @@ function update() {
 }
 
 function openShareModal() {
+  if (!latest) return;
   drawShareImage(latest);
   $("shareModal").hidden = false;
   document.body.style.overflow = "hidden";
@@ -765,10 +810,9 @@ $("selfConsumption").addEventListener("input", (event) => {
 });
 form.addEventListener("input", update);
 form.addEventListener("change", update);
-window.addEventListener("resize", () => latest && renderChart(latest));
+window.addEventListener("resize", () => latest ? renderChart(latest) : renderEmptyChart());
 $("resetButton").addEventListener("click", () => {
   form.reset();
-  $("prefecture").value = "宮城県";
   applyPresetState();
   update();
 });
