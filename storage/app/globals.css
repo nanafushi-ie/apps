@@ -28,7 +28,7 @@ main { min-height: 100vh; }
 .save-state { font-size: 12px; color: var(--green); opacity: 0; transition: opacity .2s; margin-right: 6px; }
 .save-state.show { opacity: 1; }
 
-.hero { max-width: 1180px; margin: 0 auto; padding: 36px 24px 28px; }
+.hero { max-width: 960px; margin: 0 auto; padding: 36px 24px 28px; }
 .eyebrow, .section-title p, .space-heading p, .editor-heading p { margin: 0 0 8px; color: var(--orange); font-size: 10px; letter-spacing: .18em; font-weight: 800; }
 .hero-art { overflow: hidden; aspect-ratio: 1680 / 910; border-radius: 18px 18px 6px 18px; background: #ebe9df; box-shadow: 0 14px 34px rgba(42,56,49,.1); }
 .hero-art img { width: 100%; height: 100%; display: block; object-fit: contain; }
