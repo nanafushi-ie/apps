@@ -42,10 +42,10 @@ button { color: inherit; }
 .step-heading.compact h2 { font-size: 18px; }
 
 .category-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 34px; }
-.category-tabs button { min-height: 116px; padding: 17px 20px; display: grid; grid-template-columns: 47px 1fr; grid-template-rows: 1fr 1fr; column-gap: 13px; text-align: left; border: 1px solid var(--line); border-radius: 13px; background: var(--card); cursor: pointer; transition: .18s ease; }
+.category-tabs button { min-height: 116px; padding: 17px 20px; display: grid; grid-template-columns: 58px 1fr; grid-template-rows: 1fr 1fr; column-gap: 13px; text-align: left; border: 1px solid var(--line); border-radius: 13px; background: var(--card); cursor: pointer; transition: .18s ease; }
 .category-tabs button:hover { transform: translateY(-2px); border-color: var(--green-2); }
 .category-tabs button.active { border: 2px solid var(--green); background: #f3f7ef; box-shadow: 0 8px 18px rgba(52,92,73,.08); }
-.category-tabs i { grid-row: 1 / 3; width: 47px; height: 47px; display: grid; place-items: center; align-self: center; border-radius: 50%; color: var(--green); background: var(--sage); font-size: 24px; font-style: normal; }
+.category-tabs img { grid-row: 1 / 3; width: 58px; height: 58px; padding: 4px; object-fit: contain; align-self: center; border-radius: 14px; background: var(--sage); }
 .category-tabs b { align-self: end; font-family: "Yu Mincho", serif; font-size: 18px; }
 .category-tabs small { align-self: start; margin-top: 3px; color: var(--muted); font-size: 9px; }
 

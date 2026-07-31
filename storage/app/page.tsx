@@ -28,10 +28,10 @@ const initialState: AppState = {
   margin: 15,
 };
 
-const categoryInfo: Record<Category, { label: string; icon: string; description: string }> = {
-  shoes: { label: "靴", icon: "⌁", description: "靴棚の幅と高さを考える" },
-  clothes: { label: "衣類", icon: "♧", description: "掛ける・たたむを一緒に計算" },
-  books: { label: "書籍", icon: "▥", description: "本棚の幅と高さを考える" },
+const categoryInfo: Record<Category, { label: string; description: string }> = {
+  shoes: { label: "靴", description: "靴棚の幅と高さを考える" },
+  clothes: { label: "衣類", description: "掛ける・たたむを一緒に計算" },
+  books: { label: "書籍", description: "本棚の幅と高さを考える" },
 };
 
 const dimensionLabels: Record<DimensionKey, string> = { width: "内寸幅", height: "内寸高さ", depth: "内寸奥行き" };
@@ -236,7 +236,7 @@ export default function Home() {
       <section className="simulator">
         <div className="step-heading"><span>01</span><div><h2>何を収納しますか？</h2><p>数が増減しやすいものから選べます</p></div></div>
         <div className="category-tabs">
-          {(Object.keys(categoryInfo) as Category[]).map((category) => <button type="button" key={category} className={state.category === category ? "active" : ""} onClick={() => update("category", category)}><i>{categoryInfo[category].icon}</i><b>{categoryInfo[category].label}</b><small>{categoryInfo[category].description}</small></button>)}
+          {(Object.keys(categoryInfo) as Category[]).map((category) => <button type="button" key={category} className={state.category === category ? "active" : ""} onClick={() => update("category", category)}><img src={`${import.meta.env.BASE_URL}icons/${category}.png`} alt="" aria-hidden="true" /><b>{categoryInfo[category].label}</b><small>{categoryInfo[category].description}</small></button>)}
         </div>
 
         <div className="workspace">
