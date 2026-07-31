@@ -346,6 +346,8 @@
                 w: Math.round(9100 / MODULE_OPTIONS.tatami.unitSizeMm),
                 h: Math.round(9100 / MODULE_OPTIONS.tatami.unitSizeMm)
             });
+            const [startMode, setStartMode] = useState('rooms');
+            const [floorCount, setFloorCount] = useState(1);
             const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
             const [interactionMode, setInteractionMode] = useState(null);
             const [showOpenModal, setShowOpenOptions] = useState(false);
@@ -500,20 +502,92 @@
 
             const resetView = useCallback(() => {
                 if (!mainRef.current) return;
-                const base = elements.find(e => e.type === 'base');
-                if (!base) return;
+                const bases = elements.filter(e => e.type === 'base');
+                if (bases.length === 0) return;
                 const padding = 100;
                 const availW = mainRef.current.clientWidth - padding;
                 const availH = mainRef.current.clientHeight - padding;
-                const contentW = (Number(base.w) || 1) * gridPixels;
-                const contentH = (Number(base.h) || 1) * gridPixels;
+                const minX = Math.min(...bases.map(base => Number(base.x) || 0));
+                const minY = Math.min(...bases.map(base => Number(base.y) || 0));
+                const maxX = Math.max(...bases.map(base => (Number(base.x) || 0) + getVisualSize(base).w));
+                const maxY = Math.max(...bases.map(base => (Number(base.y) || 0) + getVisualSize(base).h));
+                const contentW = Math.max(1, maxX - minX) * gridPixels;
+                const contentH = Math.max(1, maxY - minY) * gridPixels;
                 const newScale = Math.min(availW / contentW, availH / contentH, 1.2);
                 setView({
-                    x: (mainRef.current.clientWidth - contentW * newScale) / 2,
-                    y: (mainRef.current.clientHeight - contentH * newScale) / 2,
+                    x: (mainRef.current.clientWidth - contentW * newScale) / 2 - minX * gridPixels * newScale,
+                    y: (mainRef.current.clientHeight - contentH * newScale) / 2 - minY * gridPixels * newScale,
                     scale: isFinite(newScale) ? newScale : 1
                 });
             }, [elements, gridPixels]);
+
+            const baseCount = elements.filter(element => element.type === 'base').length;
+            useEffect(() => {
+                if (baseCount === 0) return;
+                const frameId = window.requestAnimationFrame(resetView);
+                return () => window.cancelAnimationFrame(frameId);
+            }, [baseCount]);
+
+            useEffect(() => {
+                const handleResize = () => window.requestAnimationFrame(resetView);
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, [resetView]);
+
+            const createRandomRooms = (base, firstId) => {
+                const labels = ['リビング', 'ダイニング', 'キッチン', '洗面', '風呂', 'トイレ', 'ランドリー', '玄関'];
+                const templates = labels
+                    .map(label => ROOM_DATA.find(room => room.label === label))
+                    .filter(Boolean);
+                const shuffled = [...templates].sort(() => Math.random() - 0.5);
+                const baseW = Math.max(1, Number(base.w));
+                const baseH = Math.max(1, Number(base.h));
+                let bestPlaced = [];
+
+                for (let attempt = 0; attempt < 8; attempt += 1) {
+                    const scale = Math.pow(0.88, attempt);
+                    const placed = [];
+                    let failed = false;
+
+                    for (const room of shuffled) {
+                        const w = Math.min(baseW, Math.max(1, Math.round(legacyGridToCurrent(room.defaultW) * scale)));
+                        const h = Math.min(baseH, Math.max(1, Math.round(legacyGridToCurrent(room.defaultH) * scale)));
+                        let position = null;
+                        const fits = (x, y) => !placed.some(item =>
+                            x < item.x + item.w && x + w > item.x && y < item.y + item.h && y + h > item.y
+                        );
+
+                        for (let trial = 0; trial < 240 && !position; trial += 1) {
+                            const x = Math.floor(Math.random() * Math.max(1, baseW - w + 1));
+                            const y = Math.floor(Math.random() * Math.max(1, baseH - h + 1));
+                            if (fits(x, y)) position = { x, y };
+                        }
+                        for (let y = 0; y <= baseH - h && !position; y += 1) {
+                            for (let x = 0; x <= baseW - w && !position; x += 1) {
+                                if (fits(x, y)) position = { x, y };
+                            }
+                        }
+
+                        if (!position) {
+                            if (placed.length > bestPlaced.length) bestPlaced = placed;
+                            failed = true;
+                            break;
+                        }
+                        placed.push({
+                            ...room,
+                            id: firstId + placed.length,
+                            x: Number(base.x) + position.x,
+                            y: Number(base.y) + position.y,
+                            w,
+                            h,
+                            rotation: 0
+                        });
+                        if (placed.length > bestPlaced.length) bestPlaced = placed;
+                    }
+                    if (!failed) return placed;
+                }
+                return bestPlaced;
+            };
 
             const addElement = (proto) => {
                 const id = Date.now();
@@ -524,29 +598,27 @@
                 };
 
                 if (proto.type === 'base') {
-                    // 基本セット配置
-                    const initialRooms = ROOM_DATA.map((r, i) => {
-                        const coords = [
-                            {x:0,y:0}, {x:20,y:0}, {x:32,y:0}, {x:0,y:14}, 
-                            {x:12,y:14}, {x:20,y:14}, {x:28,y:14}, {x:36,y:14}, 
-                            {x:20,y:22}, {x:32,y:20}, {x:0,y:24}
-                        ];
-                        return { 
-                            ...r, id: id + i + 1, 
-                            x: legacyPositionToCurrent(coords[i]?.x ?? 4),
-                            y: legacyPositionToCurrent(coords[i]?.y ?? 4),
-                            w: legacyGridToCurrent(r.defaultW),
-                            h: legacyGridToCurrent(r.defaultH),
-                            rotation: 0
-                        };
-                    });
-                    setElements([{...newEl, x: 0, y: 0, w: Number(baseDraft.w), h: Number(baseDraft.h)}, ...initialRooms]);
+                    const floorGap = Math.max(4, Math.round(legacyGridToCurrent(8)));
+                    const bases = Array.from({ length: floorCount }, (_, index) => ({
+                        ...newEl,
+                        id: id + index,
+                        x: index * (Number(baseDraft.w) + floorGap),
+                        y: 0,
+                        w: Number(baseDraft.w),
+                        h: Number(baseDraft.h),
+                        floor: index + 1,
+                        floorLabel: `${index + 1}F`
+                    }));
+                    const initialRooms = startMode === 'rooms' && floorCount === 1
+                        ? createRandomRooms(bases[0], id + floorCount + 1)
+                        : [];
+                    setElements([...bases, ...initialRooms]);
                     setShowMobileTools(false);
                     setTimeout(resetView, 50);
                 } else {
                     setElements(prev => [...prev, newEl]);
                 }
-                setSelectedId(id);
+                setSelectedId(proto.type === 'base' ? null : id);
             };
 
             const addCustomElement = (type) => {
@@ -667,8 +739,13 @@
                 if (!baseEl || !window.html2canvas) return;
 
                 const marginPx = EXPORT_MARGIN_GRID * gridPixels;
-                const exportWidth = (Number(baseEl.w) + EXPORT_MARGIN_GRID * 2) * gridPixels;
-                const exportHeight = (Number(baseEl.h) + EXPORT_MARGIN_GRID * 2) * gridPixels;
+                const bases = elements.filter(el => el.type === 'base');
+                const minX = Math.min(...bases.map(base => Number(base.x) || 0));
+                const minY = Math.min(...bases.map(base => Number(base.y) || 0));
+                const maxX = Math.max(...bases.map(base => (Number(base.x) || 0) + getVisualSize(base).w));
+                const maxY = Math.max(...bases.map(base => (Number(base.y) || 0) + getVisualSize(base).h));
+                const exportWidth = (maxX - minX + EXPORT_MARGIN_GRID * 2) * gridPixels;
+                const exportHeight = (maxY - minY + EXPORT_MARGIN_GRID * 2) * gridPixels;
                 const exportRoot = document.createElement('div');
                 exportRoot.style.position = 'fixed';
                 exportRoot.style.left = '0';
@@ -697,7 +774,11 @@
                     const isBase = el.type === 'base';
                     node.dataset.exportType = el.type;
                     node.className = `absolute flex flex-col items-center justify-center border-2 ${el.color} ${isBase ? 'border-dashed border-slate-300 shadow-2xl bg-white/80' : 'border-opacity-50 shadow-sm'} ${el.type === 'furniture' ? 'rounded-2xl opacity-90' : 'rounded-sm'}`;
-                    const style = getElementStyle({ ...el, x: Number(el.x) + EXPORT_MARGIN_GRID, y: Number(el.y) + EXPORT_MARGIN_GRID });
+                    const style = getElementStyle({
+                        ...el,
+                        x: Number(el.x) - minX + EXPORT_MARGIN_GRID,
+                        y: Number(el.y) - minY + EXPORT_MARGIN_GRID
+                    });
                     Object.assign(node.style, {
                         left: `${style.left}px`,
                         top: `${style.top}px`,
@@ -733,6 +814,15 @@
                     }
 
                     exportContent.appendChild(node);
+                });
+                bases.forEach(base => {
+                    if (!base.floorLabel) return;
+                    const floorLabel = document.createElement('div');
+                    floorLabel.className = 'absolute rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-black text-white shadow-lg';
+                    floorLabel.style.left = `${(Number(base.x) - minX + EXPORT_MARGIN_GRID) * gridPixels + 8}px`;
+                    floorLabel.style.top = `${(Number(base.y) - minY + EXPORT_MARGIN_GRID) * gridPixels + 8}px`;
+                    floorLabel.textContent = base.floorLabel;
+                    exportContent.appendChild(floorLabel);
                 });
 
                 document.body.appendChild(exportRoot);
@@ -874,6 +964,47 @@
                                         </div>
                                         <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} stepMm={unitSizeMm} onCommit={(mm) => setBaseDraft({...baseDraft, w: mmToGrid(mm)})} large />
                                         <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} stepMm={unitSizeMm} onCommit={(mm) => setBaseDraft({...baseDraft, h: mmToGrid(mm)})} large />
+                                        <div>
+                                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">検討するフロア</p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[1, 2, 3].map(count => (
+                                                    <button
+                                                        key={count}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setFloorCount(count);
+                                                            if (count > 1) setStartMode('empty');
+                                                        }}
+                                                        className={`rounded-xl border-2 py-3 text-center text-[11px] font-black transition-all ${floorCount === count ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
+                                                    >
+                                                        {count === 1 ? '1フロア' : `${count}フロア`}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">開始方法</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={floorCount > 1}
+                                                    onClick={() => setStartMode('rooms')}
+                                                    className={`rounded-xl border-2 p-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-40 ${startMode === 'rooms' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
+                                                >
+                                                    <span className="block text-[11px] font-black">部屋を配置</span>
+                                                    <span className="mt-1 block text-[9px] font-bold opacity-70">8室をランダム配置</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStartMode('empty')}
+                                                    className={`rounded-xl border-2 p-3 text-left transition-all ${startMode === 'empty' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
+                                                >
+                                                    <span className="block text-[11px] font-black">空から開始</span>
+                                                    <span className="mt-1 block text-[9px] font-bold opacity-70">外形のみを配置</span>
+                                                </button>
+                                            </div>
+                                            {floorCount > 1 && <p className="mt-2 text-[9px] font-bold text-slate-400">複数フロアは空の状態から開始します。</p>}
+                                        </div>
                                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-center shadow-inner" aria-live="polite">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">家の外形面積</p>
                                             <p className="mt-1 text-2xl font-black text-indigo-700">{baseArea.tsubo}<span className="ml-1 text-sm">坪</span></p>
@@ -888,12 +1019,10 @@
                                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><SvgIcon name="Settings" size={14}/> {selectedId && selectedEl.type !== 'base' ? 'パーツ微調整' : '家の外寸微調整'}</h3>
                                         <div className="grid grid-cols-1 gap-2">
                                             <DimensionInput label="幅 (mm)" value={selectedId ? gridToMm(selectedEl.w) : gridToMm(baseEl.w)} stepMm={unitSizeMm} onCommit={(mm) => {
-                                                const targetId = selectedId || baseEl.id;
-                                                setElements(prev => prev.map(el => el.id === targetId ? {...el, w: mmToGrid(mm)} : el));
+                                                setElements(prev => prev.map(el => selectedId ? (el.id === selectedId ? {...el, w: mmToGrid(mm)} : el) : (el.type === 'base' ? {...el, w: mmToGrid(mm)} : el)));
                                             }} />
                                             <DimensionInput label="奥行 (mm)" value={selectedId ? gridToMm(selectedEl.h) : gridToMm(baseEl.h)} stepMm={unitSizeMm} onCommit={(mm) => {
-                                                const targetId = selectedId || baseEl.id;
-                                                setElements(prev => prev.map(el => el.id === targetId ? {...el, h: mmToGrid(mm)} : el));
+                                                setElements(prev => prev.map(el => selectedId ? (el.id === selectedId ? {...el, h: mmToGrid(mm)} : el) : (el.type === 'base' ? {...el, h: mmToGrid(mm)} : el)));
                                             }} />
                                         </div>
                                         <p className="text-[9px] font-bold text-slate-400">{MODULE_OPTIONS[moduleKey]?.label || 'カスタム'}：1目盛り {unitSizeMm}mm</p>
@@ -958,7 +1087,7 @@
                                             return (
                                                 <div key={el.id} data-id={el.id} className={`absolute flex flex-col items-center justify-center border-2 transition-all
                                                     ${el.color} ${isBase ? 'pointer-events-none border-dashed border-slate-300 shadow-2xl bg-white/80' : 'pointer-events-auto cursor-move border-opacity-50'}
-                                                    ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-4 z-40 shadow-2xl scale-[1.01]' : 'z-10 shadow-sm'}
+                                                    ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-4 z-40 shadow-2xl scale-[1.01]' : isBase ? 'z-0 shadow-sm' : 'z-20 shadow-sm'}
                                                     ${el.type === 'furniture' ? 'rounded-2xl opacity-90' : 'rounded-sm'}`}
                                                     style={getElementStyle(el)}
                                                 >
@@ -996,6 +1125,18 @@
                                                 </div>
                                             );
                                         })}
+                                        {elements.filter(el => el.type === 'base' && el.floorLabel).map(base => (
+                                            <div
+                                                key={`floor-label-${base.id}`}
+                                                className="absolute z-30 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-black text-white shadow-lg"
+                                                style={{
+                                                    left: Number(base.x) * gridPixels + 8,
+                                                    top: Number(base.y) * gridPixels + 8
+                                                }}
+                                            >
+                                                {base.floorLabel}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ) : (

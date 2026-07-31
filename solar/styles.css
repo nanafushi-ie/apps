@@ -282,14 +282,19 @@ input[type="range"] { width: 100%; accent-color: var(--leaf); }
   accent-color: var(--leaf);
 }
 .battery-preset-row { margin-top: 14px; }
-.preset-lifestyle {
+.lifestyle-control {
+  display: block;
+  margin: 10px 0 8px;
   padding: 12px 13px;
   border: 1px solid #dbe7e2;
   border-radius: 12px;
   background: #fbfdfc;
 }
-.preset-lifestyle select { margin-top: 8px; }
-.preset-lifestyle small { display: block; margin-top: 7px; }
+.lifestyle-control > .label-title {
+  color: var(--muted);
+  font-size: 11px;
+}
+.lifestyle-control select { margin-top: 8px; }
 .preset-locked input:not([type="checkbox"]),
 .preset-locked select,
 input:disabled,

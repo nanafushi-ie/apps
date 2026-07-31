@@ -107,10 +107,14 @@ function applyPresetState() {
   const solarPresetEnabled = $("solarPreset").checked;
   if (solarPresetEnabled) {
     setPresetValues(SOLAR_PRESET);
-    $("selfConsumption").value = $("daytimeLifestyle").value;
+    const lifestyleValue = Number($("daytimeLifestyle").value);
+    if (Number.isFinite(lifestyleValue)) {
+      $("selfConsumption").value = String(lifestyleValue);
+    } else {
+      $("daytimeLifestyle").value = "30";
+    }
   }
   if ($("batteryPreset").checked) setPresetValues(BATTERY_PRESET);
-  $("lifestyleField").hidden = !solarPresetEnabled;
   setSectionLocked("solarSettings", solarPresetEnabled, ["solarPreset", "daytimeLifestyle"]);
   setSectionLocked(
     "batterySettings",
@@ -430,101 +434,148 @@ function drawShareImage(result) {
   const last = result.data[result.data.length - 1];
   const saving = Math.max(last.noSolar - last.solar, 0);
   const batterySaving = Math.max(last.noSolar - last.battery, 0);
+  const ink = "#193b31";
+  const orange = "#df7e3a";
+  const sage = "#9cab8d";
+  const paper = "#f5f0e5";
+  const line = "#c9c3b4";
 
-  ctx.fillStyle = "#f7f4e9";
+  ctx.fillStyle = paper;
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#f5b83d";
-  ctx.beginPath();
-  ctx.arc(1040, 45, 170, 0, Math.PI * 2);
-  ctx.fill();
 
-  ctx.fillStyle = "#18312b";
-  ctx.font = '700 30px "Hiragino Sans", sans-serif';
-  ctx.fillText("ひだまりシミュレータ", 70, 72);
-  ctx.fillStyle = "#d88e0c";
-  ctx.font = '700 21px "Avenir Next", sans-serif';
-  ctx.fillText("SOLAR COST FORECAST", 70, 113);
-  ctx.fillStyle = "#18312b";
-  ctx.font = '600 54px "Hiragino Mincho ProN", serif';
-  ctx.fillText(`${result.inputs.prefecture}の太陽光`, 70, 184);
-  ctx.fillText("シミュレーション結果", 70, 248);
-  ctx.fillStyle = "#687a75";
-  ctx.font = '600 24px "Hiragino Sans", sans-serif';
+  // 紙のような控えめな粒子と、図面を思わせる背景線
+  ctx.fillStyle = "rgba(49, 60, 45, .055)";
+  for (let y = 8; y < h; y += 19) {
+    for (let x = 11; x < w; x += 23) {
+      if ((x + y) % 5 < 2) ctx.fillRect(x, y, 1.3, 1.3);
+    }
+  }
+  ctx.strokeStyle = "rgba(91, 112, 84, .18)";
+  ctx.lineWidth = 1;
+  for (let x = 705; x <= 1015; x += 32) {
+    ctx.beginPath(); ctx.moveTo(x, 55); ctx.lineTo(x, 295); ctx.stroke();
+  }
+  for (let y = 71; y <= 295; y += 32) {
+    ctx.beginPath(); ctx.moveTo(705, y); ctx.lineTo(1015, y); ctx.stroke();
+  }
+
+  // 抽象的な太陽と住宅のイラスト
+  ctx.fillStyle = "#d9dfcf";
+  ctx.beginPath(); ctx.arc(1012, 68, 118, Math.PI, Math.PI * 1.5); ctx.lineTo(1012, 68); ctx.fill();
+  ctx.fillStyle = orange;
+  ctx.beginPath(); ctx.arc(956, 255, 86, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#efe8d8";
+  ctx.strokeStyle = "#5b5a48";
+  ctx.lineWidth = 3;
+  ctx.fillRect(742, 170, 252, 132);
+  ctx.strokeRect(742, 170, 252, 132);
+  ctx.beginPath();
+  ctx.moveTo(715, 174); ctx.lineTo(862, 92); ctx.lineTo(1018, 174); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#49675c";
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 4; col++) {
+      const px = 793 + col * 47 + row * 13;
+      const py = 113 + row * 30;
+      ctx.beginPath();
+      ctx.moveTo(px, py); ctx.lineTo(px + 42, py - 2);
+      ctx.lineTo(px + 53, py + 24); ctx.lineTo(px + 11, py + 27);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#d8e0d4"; ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+  ctx.fillStyle = "#9cab8d"; ctx.fillRect(782, 222, 61, 80);
+  ctx.fillStyle = ink; ctx.fillRect(900, 218, 57, 48);
+  ctx.strokeStyle = paper; ctx.beginPath(); ctx.moveTo(928, 218); ctx.lineTo(928, 266); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(900, 242); ctx.lineTo(957, 242); ctx.stroke();
+
+  ctx.fillStyle = ink;
+  ctx.font = '700 28px "Hiragino Sans", sans-serif';
+  ctx.fillText("ひだまりシミュレータ", 64, 66);
+  ctx.fillStyle = orange;
+  ctx.font = '700 18px "Avenir Next", sans-serif';
+  ctx.fillText("SOLAR COST FORECAST / 30 YEARS", 64, 101);
+  ctx.fillStyle = ink;
+  ctx.font = '600 54px "Hiragino Mincho ProN", "Yu Mincho", serif';
+  ctx.fillText(`${result.inputs.prefecture}の太陽光`, 64, 177);
+  ctx.font = '600 62px "Hiragino Mincho ProN", "Yu Mincho", serif';
+  ctx.fillText("何年で元が取れる？", 64, 247);
+  ctx.strokeStyle = orange;
+  ctx.setLineDash([8, 7]);
+  ctx.beginPath(); ctx.moveTo(66, 281); ctx.lineTo(637, 281); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = orange; ctx.beginPath(); ctx.arc(637, 281, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#56675f";
+  ctx.font = '600 20px "Hiragino Sans", sans-serif';
   ctx.fillText(
-    `パネル ${result.inputs.panelCapacity.toFixed(1)}kW　年間使用量 ${yen.format(result.inputs.usage)}kWh`,
-    70,
-    292
+    `パネル ${result.inputs.panelCapacity.toFixed(1)}kW  ｜  年間使用量 ${yen.format(result.inputs.usage)}kWh  ｜  自家消費率 ${yen.format(result.inputs.solarSelf * 100)}%`,
+    66,
+    317
   );
 
-  roundedRect(ctx, 70, 330, 450, 210, 26);
-  ctx.fillStyle = "#164f42";
-  ctx.fill();
-  ctx.fillStyle = "#8bc8b7";
-  ctx.font = '700 24px "Hiragino Sans", sans-serif';
-  ctx.fillText("太陽光パネルのみ", 104, 377);
-  ctx.fillStyle = "#fff";
-  ctx.font = '700 49px "Hiragino Sans", sans-serif';
-  ctx.fillText(formatBreakEven(result.solarCrossing.final), 104, 449);
-  ctx.font = '600 23px "Hiragino Sans", sans-serif';
-  ctx.fillText("で元が取れる見込み", 104, 499);
+  roundedRect(ctx, 64, 350, 610, 205, 25);
+  ctx.fillStyle = ink; ctx.fill();
+  ctx.fillStyle = "#b7c8ac";
+  ctx.font = '700 22px "Hiragino Sans", sans-serif';
+  ctx.fillText("太陽光パネルのみ", 100, 394);
+  ctx.fillStyle = "#fffdf7";
+  ctx.font = '700 76px "Hiragino Mincho ProN", "Yu Mincho", serif';
+  ctx.fillText(formatBreakEven(result.solarCrossing.final), 98, 482);
+  ctx.font = '600 22px "Hiragino Sans", sans-serif';
+  ctx.fillText("で元が取れる見込み", 100, 525);
 
-  roundedRect(ctx, 560, 330, 450, 210, 26);
-  ctx.fillStyle = result.inputs.includeBattery ? "#e2f0eb" : "#fff";
-  ctx.fill();
-  ctx.strokeStyle = result.inputs.includeBattery ? "#9fc8ba" : "#dcded6";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = result.inputs.includeBattery ? "#24745f" : "#687a75";
-  ctx.font = '700 24px "Hiragino Sans", sans-serif';
-  ctx.fillText(result.inputs.includeBattery ? "太陽光＋蓄電池" : "30年後の節約額", 594, 377);
-  ctx.fillStyle = "#18312b";
-  ctx.font = '700 49px "Hiragino Sans", sans-serif';
+  roundedRect(ctx, 698, 350, 318, 205, 25);
+  ctx.fillStyle = "#eee8da"; ctx.fill();
+  ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#657265";
+  ctx.font = '700 19px "Hiragino Sans", sans-serif';
+  ctx.fillText(result.inputs.includeBattery ? "太陽光パネル＋蓄電池" : "30年後の節約額", 726, 393);
+  ctx.fillStyle = ink;
+  ctx.font = '700 42px "Hiragino Mincho ProN", "Yu Mincho", serif';
   ctx.fillText(
     result.inputs.includeBattery
       ? formatBreakEven(result.batteryCrossing.final)
       : `約${yen.format(saving / 10000)}万円`,
-    594,
-    449
+    725,
+    462
   );
-  ctx.font = '600 23px "Hiragino Sans", sans-serif';
-  ctx.fillText(
-    result.inputs.includeBattery ? "で元が取れる見込み" : "太陽光なしとの比較",
-    594,
-    499
-  );
+  ctx.font = '600 19px "Hiragino Sans", sans-serif';
+  ctx.fillText(result.inputs.includeBattery ? "で元が取れる見込み" : "太陽光なしとの比較", 726, 510);
 
-  roundedRect(ctx, 70, 575, 940, 150, 24);
-  ctx.fillStyle = "#fff";
-  ctx.fill();
-  ctx.strokeStyle = "#dcded6";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = "#687a75";
-  ctx.font = '700 25px "Hiragino Sans", sans-serif';
-  ctx.fillText("30年後に減らせる金額", 105, 625);
-  ctx.fillStyle = "#18312b";
-  ctx.font = '700 50px "Hiragino Sans", sans-serif';
-  ctx.fillText(`太陽光パネルのみ 約${yen.format(saving / 10000)}万円`, 105, 689);
+  roundedRect(ctx, 64, 584, 952, 142, 24);
+  ctx.fillStyle = "#fffdf7"; ctx.fill();
+  ctx.strokeStyle = line; ctx.stroke();
+  ctx.fillStyle = "#657265";
+  ctx.font = '700 21px "Hiragino Sans", sans-serif';
+  ctx.fillText("30年後に減らせる金額", 98, 625);
+  ctx.fillStyle = ink;
+  ctx.font = '700 48px "Hiragino Mincho ProN", "Yu Mincho", serif';
+  ctx.fillText(`約${yen.format(saving / 10000)}万円`, 98, 687);
+  ctx.fillStyle = orange;
+  ctx.fillRect(410, 659, 4, 27);
+  ctx.font = '700 21px "Hiragino Sans", sans-serif';
+  ctx.fillText("太陽光パネルのみ", 438, 683);
   if (result.inputs.includeBattery) {
-    ctx.fillStyle = "#24745f";
-    ctx.font = '700 27px "Hiragino Sans", sans-serif';
-    ctx.fillText(`蓄電池あり 約${yen.format(batterySaving / 10000)}万円`, 650, 681);
+    ctx.fillStyle = "#657265";
+    ctx.font = '700 19px "Hiragino Sans", sans-serif';
+    ctx.fillText(`蓄電池ありなら 約${yen.format(batterySaving / 10000)}万円`, 700, 683);
   }
 
-  roundedRect(ctx, 70, 760, 940, 430, 28);
-  ctx.fillStyle = "#fff";
-  ctx.fill();
-  ctx.strokeStyle = "#dcded6";
-  ctx.stroke();
-  ctx.fillStyle = "#18312b";
-  ctx.font = '700 28px "Hiragino Sans", sans-serif';
-  ctx.fillText("30年間で支払う合計金額", 105, 812);
+  roundedRect(ctx, 64, 760, 952, 420, 27);
+  ctx.fillStyle = "#fffdf7"; ctx.fill();
+  ctx.strokeStyle = line; ctx.stroke();
+  ctx.fillStyle = ink;
+  ctx.font = '700 27px "Hiragino Sans", sans-serif';
+  ctx.fillText("30年間に支払う合計金額の推移", 98, 810);
+  ctx.fillStyle = "#718077";
+  ctx.font = '500 17px "Hiragino Sans", sans-serif';
+  ctx.fillText("設置費用・電気代・交換費用から、補助金と売電収入を差し引いた概算", 98, 842);
 
-  const left = 120, top = 855, right = 960, bottom = 1095;
+  const left = 112, top = 875, right = 965, bottom = 1083;
   const keys = result.inputs.includeBattery ? ["noSolar", "solar", "battery"] : ["noSolar", "solar"];
   const maxValue = Math.max(...result.data.flatMap((row) => keys.map((key) => row[key]))) * 1.05;
-  ctx.strokeStyle = "#dcded6";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#ded8ca";
+  ctx.lineWidth = 1.5;
   for (let i = 0; i <= 4; i++) {
     const yy = bottom - ((bottom - top) / 4) * i;
     ctx.beginPath();
@@ -540,7 +591,7 @@ function drawShareImage(result) {
     ...(result.inputs.includeBattery ? [["battery", COLORS.battery]] : [])
   ].forEach(([key, color]) => {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 6;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -552,27 +603,34 @@ function drawShareImage(result) {
   });
 
   ctx.fillStyle = "#687a75";
-  ctx.font = '600 19px "Hiragino Sans", sans-serif';
-  ctx.fillText("太陽光なし", 105, 1148);
-  ctx.fillStyle = COLORS.none; ctx.fillRect(220, 1136, 38, 7);
-  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光パネルのみ", 300, 1148);
-  ctx.fillStyle = COLORS.solar; ctx.fillRect(475, 1136, 38, 7);
+  ctx.font = '600 17px "Hiragino Sans", sans-serif';
+  ctx.fillStyle = COLORS.none; ctx.fillRect(100, 1121, 28, 6);
+  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光なし", 140, 1130);
+  ctx.fillStyle = COLORS.solar; ctx.fillRect(300, 1121, 28, 6);
+  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光パネルのみ", 340, 1130);
   if (result.inputs.includeBattery) {
-    ctx.fillStyle = "#687a75"; ctx.fillText("太陽光パネル＋蓄電池", 550, 1148);
-    ctx.fillStyle = COLORS.battery; ctx.fillRect(770, 1136, 38, 7);
+    ctx.fillStyle = COLORS.battery; ctx.fillRect(600, 1121, 28, 6);
+    ctx.fillStyle = "#687a75"; ctx.fillText("太陽光パネル＋蓄電池", 640, 1130);
   }
 
-  ctx.fillStyle = "#687a75";
-  ctx.font = '500 20px "Hiragino Sans", sans-serif';
-  ctx.fillText("※入力条件と地域の代表値に基づく概算です", 70, 1260);
-  ctx.fillStyle = "#24745f";
+  ctx.fillStyle = ink;
   ctx.font = '700 25px "Hiragino Sans", sans-serif';
-  ctx.textAlign = "right";
-  ctx.fillText("#ななふしの家", 1010, 1260);
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#18312b";
+  ctx.fillText("ひだまりシミュレータ", 64, 1244);
+  ctx.fillStyle = "#66756c";
+  ctx.font = '500 17px "Hiragino Sans", sans-serif';
+  ctx.fillText("※入力条件と地域の代表値に基づく概算です", 64, 1278);
+  ctx.fillStyle = orange;
   ctx.font = '700 24px "Hiragino Sans", sans-serif';
-  ctx.fillText("ひだまりシミュレータで試してみる", 70, 1312);
+  ctx.textAlign = "right";
+  ctx.fillText("#ななふしの家", 1016, 1247);
+  ctx.textAlign = "left";
+  ctx.strokeStyle = "#8d998c";
+  ctx.setLineDash([5, 7]);
+  ctx.beginPath(); ctx.moveTo(64, 1305); ctx.lineTo(1016, 1305); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = ink;
+  ctx.font = '600 20px "Hiragino Mincho ProN", "Yu Mincho", serif';
+  ctx.fillText("わが家の太陽光を、入る数字に。", 64, 1330);
 }
 
 function update() {
@@ -690,6 +748,17 @@ function handleChartMove(event) {
 }
 
 fillPrefectures();
+$("daytimeLifestyle").addEventListener("change", (event) => {
+  const value = Number(event.currentTarget.value);
+  if (Number.isFinite(value)) $("selfConsumption").value = String(value);
+});
+$("selfConsumption").addEventListener("input", (event) => {
+  const value = event.currentTarget.value;
+  const matchingOption = [...$("daytimeLifestyle").options].some(
+    (option) => option.value === value
+  );
+  $("daytimeLifestyle").value = matchingOption ? value : "custom";
+});
 form.addEventListener("input", update);
 form.addEventListener("change", update);
 window.addEventListener("resize", () => latest && renderChart(latest));

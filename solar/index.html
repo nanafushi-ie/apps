@@ -8,7 +8,7 @@
       content="地域や電気使用量から、太陽光発電と蓄電池の長期コストを比較できるシミュレーター"
     />
     <title>ひだまりシミュレータ｜太陽光コストシミュレーター</title>
-    <link rel="stylesheet" href="./styles.css?v=20260730-7" />
+    <link rel="stylesheet" href="./styles.css?v=20260730-8" />
   </head>
   <body>
     <header class="site-header">
@@ -80,22 +80,6 @@
                 </span>
                 <input id="solarPreset" type="checkbox" checked />
               </label>
-              <label id="lifestyleField" class="preset-lifestyle">
-                <span class="label-title">
-                  日中の過ごし方
-                  <button class="info-button" type="button"
-                    data-help-title="日中の過ごし方と自家消費率"
-                    data-help="昼間に家で電気を使う機会が多いほど、発電した電気をその場で使いやすくなります。公的資料で使われている住宅用太陽光の平均的な目安30%を中心に、このアプリでは「ほとんど不在」20%、「ときどき在宅」30%、「在宅が多い」40%として概算します。この3つの数値は暮らし方による違いを試すための目安で、実測値ではありません。"
-                    data-help-url="https://www.meti.go.jp/shingikai/santeii/pdf/055_01_00.pdf"
-                    data-help-link="経済産業省の資料を見る">i</button>
-                </span>
-                <select id="daytimeLifestyle">
-                  <option value="20">昼間はほとんど不在（20%）</option>
-                  <option value="30" selected>日中もときどき在宅（30%）</option>
-                  <option value="40">日中の在宅が多い（40%）</option>
-                </select>
-                <small>「おまかせ」の間は、選んだ暮らし方から家庭で使う割合を自動設定します。</small>
-              </label>
               <div class="field-grid">
                 <label>
                   <span class="label-title">
@@ -115,7 +99,14 @@
                   </small>
                 </label>
                 <label>
-                  設置費用
+                  <span class="label-title">
+                    設置費用
+                    <button class="info-button" type="button"
+                      data-help-title="太陽光パネルの設置費用"
+                      data-help="太陽光パネル本体だけでなく、屋根に固定する架台、パワコン、配線、設置工事などを含む導入時の総額です。見積書では補助金を差し引く前の金額を入力してください。このアプリの「おまかせ」は、5kWの設備で140万円としています。"
+                      data-help-url="https://www.enecho.meti.go.jp/committee/council/basic_policy_subcommittee/mitoshi/cost_wg/2024/data/06_04.pdf"
+                      data-help-link="資源エネルギー庁の資料を見る">i</button>
+                  </span>
                   <span class="input-unit">
                     <input id="solarCost" type="number" min="0" max="20000000" step="10000" value="1400000" />
                     <b>円</b>
@@ -152,7 +143,12 @@
                 </label>
               </div>
               <label>
-                屋根の向き
+                <span class="label-title">
+                  屋根の向き
+                  <button class="info-button" type="button"
+                    data-help-title="屋根の向き"
+                    data-help="太陽光パネルが向く方角です。一般に南向きは1日を通して日差しを受けやすく、東向きは午前、西向きは午後の発電が多くなります。このアプリでは南向きを100%として、方角による年間発電量の差を簡易的に補正します。屋根の傾き、周囲の建物や木の影によっても発電量は変わります。">i</button>
+                </span>
                 <select id="roofDirection">
                   <option value="1">南（基準）</option>
                   <option value="0.96">南東・南西</option>
@@ -164,18 +160,34 @@
               </label>
               <label>
                 <span class="label-title">
-                  発電した電気を家で使う割合
+                  自家消費率
                   <button class="info-button" type="button"
                     data-help-title="自家消費率"
                     data-help="太陽光で発電した電気のうち、売らずに自宅で使う割合（自家消費率）です。住宅用太陽光では30%程度が平均的な目安です。昼間に在宅している時間が長い家庭や、洗濯・食洗機などを昼間に使う家庭ほど高くなりやすく、蓄電池があると夜にも回せます。"
                     data-help-url="https://www.meti.go.jp/shingikai/santeii/pdf/055_01_00.pdf"
                     data-help-link="経済産業省の資料を見る">i</button>
                 </span>
+                <span id="lifestyleField" class="lifestyle-control">
+                  <span class="label-title">
+                    日中の過ごし方から選ぶ
+                    <button class="info-button" type="button"
+                      data-help-title="日中の過ごし方と自家消費率"
+                      data-help="昼間に家で電気を使う機会が多いほど、発電した電気をその場で使いやすくなります。公的資料で使われている住宅用太陽光の平均的な目安30%を中心に、このアプリでは「ほとんど不在」20%、「ときどき在宅」30%、「在宅が多い」40%として概算します。この3つの数値は暮らし方による違いを試すための目安で、実測値ではありません。"
+                      data-help-url="https://www.meti.go.jp/shingikai/santeii/pdf/055_01_00.pdf"
+                      data-help-link="経済産業省の資料を見る">i</button>
+                  </span>
+                  <select id="daytimeLifestyle">
+                    <option value="20">昼間はほとんど不在（20%）</option>
+                    <option value="30" selected>日中もときどき在宅（30%）</option>
+                    <option value="40">日中の在宅が多い（40%）</option>
+                    <option value="custom">自分で細かく調整</option>
+                  </select>
+                </span>
                 <div class="range-row">
                   <input id="selfConsumption" type="range" min="10" max="80" step="1" value="30" />
                   <output id="selfConsumptionOutput">30%</output>
                 </div>
-                <small>標準的な目安は30%です。「おまかせ」では日中の過ごし方から20〜40%を選び、残りは売電すると仮定します。</small>
+                <small>発電した電気を家庭内で使う割合です。日中の過ごし方を選ぶか、スライダーで細かく調整できます。</small>
               </label>
             </fieldset>
 
@@ -489,6 +501,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260730-7"></script>
+    <script src="./app.js?v=20260730-8"></script>
   </body>
 </html>
