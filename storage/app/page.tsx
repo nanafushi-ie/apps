@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 type Item = {
   id: string;
@@ -19,6 +25,14 @@ type StorageSpace = {
   heightMm: number;
   effectiveRate: number;
   tag: string;
+};
+
+type StorageProject = {
+  format: "storage-simulator";
+  version: 1;
+  exportedAt: string;
+  items: Item[];
+  spaces: StorageSpace[];
 };
 
 const initialItems: Item[] = [
@@ -44,6 +58,17 @@ const liters = (space: StorageSpace) =>
   Math.round((space.widthMm * space.depthMm * space.heightMm * space.effectiveRate) / 1_000_000);
 const itemLiters = (item: Item) => Math.round(item.quantity * item.literPerUnit);
 const fmt = (n: number) => new Intl.NumberFormat("ja-JP").format(Math.round(n));
+const encodeState = (value: StorageProject) => {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let binary = "";
+  bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
+  return btoa(binary);
+};
+const decodeState = (value: string) => {
+  const binary = atob(value);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+};
 
 function readSavedState() {
   if (typeof window === "undefined") return null;
@@ -62,6 +87,8 @@ export default function Home() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [fileMessage, setFileMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const state = readSavedState();
@@ -116,11 +143,58 @@ export default function Home() {
     setDraggedId(null);
   };
 
+  const projectData = (): StorageProject => ({
+    format: "storage-simulator",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    items,
+    spaces,
+  });
+
+  const loadProject = (data: unknown) => {
+    const project = data as Partial<StorageProject>;
+    if (!Array.isArray(project.items) || !Array.isArray(project.spaces)) {
+      throw new Error("invalid-project");
+    }
+    const nextItems = project.items.filter((item) =>
+      item && typeof item.id === "string" && typeof item.category === "string"
+    ) as Item[];
+    const nextSpaces = project.spaces.filter((space) =>
+      space && typeof space.id === "string" && typeof space.name === "string"
+    ) as StorageSpace[];
+    if (!nextItems.length) throw new Error("empty-project");
+    setItems(nextItems);
+    setSpaces(nextSpaces);
+    setActiveTab("place");
+  };
+
+  const importProject = async (file: File) => {
+    try {
+      if (file.name.toLowerCase().endsWith(".pdf")) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const metadata = await pdf.getMetadata();
+        const info = metadata.info as Record<string, unknown>;
+        const encoded = typeof info.Keywords === "string" ? info.Keywords : "";
+        if (!encoded.startsWith("storage-state:")) throw new Error("no-state");
+        loadProject(decodeState(encoded.slice("storage-state:".length)));
+        setFileMessage("PDFから編集データを読み込みました");
+      } else {
+        loadProject(JSON.parse(await file.text()));
+        setFileMessage("JSONファイルを読み込みました");
+      }
+    } catch {
+      alert("このアプリで保存したJSONまたはPDFを読み込んでください。");
+    } finally {
+      window.setTimeout(() => setFileMessage(""), 2200);
+    }
+  };
+
   const exportFile = (type: "json" | "csv") => {
     let content = "";
     let mime = "";
     if (type === "json") {
-      content = JSON.stringify({ exportedAt: new Date().toISOString(), items, spaces }, null, 2);
+      content = JSON.stringify(projectData(), null, 2);
       mime = "application/json";
     } else {
       const header = ["カテゴリ", "数量", "単位", "L/単位", "必要量(L)", "収納先"];
@@ -142,6 +216,62 @@ export default function Home() {
     URL.revokeObjectURL(link.href);
   };
 
+  const exportPdf = async () => {
+    setFileMessage("PDFを作成しています…");
+    const report = document.createElement("section");
+    report.className = "pdf-report";
+    const rows = items.map((item) => {
+      const destination = spaces.find((space) => space.id === item.assignedSpaceId)?.name ?? "未配置";
+      return `<tr><td>${escapeHtml(item.category)}</td><td>${fmt(item.quantity)} ${escapeHtml(item.unitLabel)}</td><td>${fmt(itemLiters(item))} L</td><td>${escapeHtml(destination)}</td></tr>`;
+    }).join("");
+    const spaceRows = spaces.map((space) => {
+      const used = usageFor(space.id);
+      const capacity = liters(space);
+      return `<tr><td>${escapeHtml(space.name)}</td><td>${fmt(used)} L</td><td>${fmt(capacity)} L</td><td>${capacity ? Math.round(used / capacity * 100) : 0}%</td></tr>`;
+    }).join("");
+    report.innerHTML = `
+      <div class="pdf-report-head"><p>STORAGE PLANNING REPORT</p><h1>収納量シミュレーター</h1><span>${new Date().toLocaleDateString("ja-JP")}</span></div>
+      <div class="pdf-summary">
+        <div><span>収納容量</span><b>${fmt(totalCapacity)} L</b></div>
+        <div><span>必要量</span><b>${fmt(totalNeed)} L</b></div>
+        <div><span>全体充足率</span><b>${overallPercent}%</b></div>
+        <div><span>未配置</span><b>${fmt(unassignedLiters)} L</b></div>
+      </div>
+      <div class="pdf-diagnosis"><b>診断</b><p>${escapeHtml(diagnosis)}</p></div>
+      <h2>収納スペース</h2><table><thead><tr><th>名称</th><th>使用量</th><th>容量</th><th>使用率</th></tr></thead><tbody>${spaceRows}</tbody></table>
+      <h2>持ち物と配置先</h2><table><thead><tr><th>カテゴリ</th><th>数量</th><th>必要量</th><th>収納先</th></tr></thead><tbody>${rows}</tbody></table>
+      <footer>収納量シミュレーターで作成・このPDFをアプリに読み込むと編集を再開できます</footer>`;
+    document.body.appendChild(report);
+    try {
+      const canvas = await html2canvas(report, { scale: 1.6, backgroundColor: "#f6f4ee", logging: false });
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      const image = canvas.toDataURL("image/jpeg", 0.9);
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 10;
+      const imageWidth = pageWidth - margin * 2;
+      const imageHeight = canvas.height * imageWidth / canvas.width;
+      let sourceY = 0;
+      const pageContentHeight = pageHeight - margin * 2;
+      while (sourceY < imageHeight) {
+        if (sourceY > 0) doc.addPage();
+        doc.addImage(image, "JPEG", margin, margin - sourceY, imageWidth, imageHeight, undefined, "FAST");
+        sourceY += pageContentHeight;
+      }
+      doc.setProperties({
+        title: "収納量シミュレーター",
+        subject: "収納計画レポート",
+        creator: "収納量シミュレーター",
+        keywords: `storage-state:${encodeState(projectData())}`,
+      });
+      doc.save(`収納計画_${new Date().toISOString().slice(0, 10)}.pdf`);
+      setFileMessage("PDFを保存しました");
+    } finally {
+      report.remove();
+      window.setTimeout(() => setFileMessage(""), 2200);
+    }
+  };
+
   return (
     <main>
       <header className="topbar">
@@ -150,9 +280,22 @@ export default function Home() {
           <span>収納量シミュレーター</span>
         </a>
         <div className="header-actions">
-          <span className={`save-state ${saved ? "show" : ""}`}>保存しました</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.pdf,application/json,application/pdf"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void importProject(file);
+              event.target.value = "";
+            }}
+          />
+          <span className={`save-state ${(saved || fileMessage) ? "show" : ""}`}>{fileMessage || "保存しました"}</span>
+          <button className="ghost" onClick={() => fileInputRef.current?.click()}>開く</button>
+          <button className="ghost" onClick={() => exportFile("json")}>JSON保存</button>
+          <button className="ghost pdf-button" onClick={() => void exportPdf()}>PDF出力</button>
           <button className="ghost" onClick={() => exportFile("csv")}>CSV</button>
-          <button className="ghost" onClick={() => exportFile("json")}>JSON</button>
         </div>
       </header>
 
@@ -294,6 +437,9 @@ export default function Home() {
     </main>
   );
 }
+
+const escapeHtml = (value: string) =>
+  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
 function ItemCard({ item, compact = false, onDrag }: { item: Item; compact?: boolean; onDrag: () => void }) {
   return (

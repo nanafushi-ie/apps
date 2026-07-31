@@ -642,7 +642,7 @@ function update() {
   const monthlyUsage = latest.inputs.usage / 12;
   const monthlyCost = monthlyUsage * latest.inputs.electricityPrice;
   $("monthlyCostEstimate").textContent =
-    `月平均の目安：約${yen.format(monthlyUsage)}kWh／約${yen.format(monthlyCost)}円`;
+    `月平均の電気代の目安：約${yen.format(monthlyCost)}円（使用量 約${yen.format(monthlyUsage)}kWh）`;
   $("batteryFields").hidden = !latest.inputs.includeBattery;
   renderSummary(latest);
   renderChart(latest);

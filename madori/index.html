@@ -609,7 +609,7 @@
                         floor: index + 1,
                         floorLabel: `${index + 1}F`
                     }));
-                    const initialRooms = startMode === 'rooms' && floorCount === 1
+                    const initialRooms = startMode === 'rooms'
                         ? createRandomRooms(bases[0], id + floorCount + 1)
                         : [];
                     setElements([...bases, ...initialRooms]);
@@ -926,7 +926,7 @@
 
                     <div className="flex flex-row flex-1 overflow-hidden relative">
                         {showMobileTools && <button aria-label="ツールを閉じる" onClick={() => baseEl && setShowMobileTools(false)} className="sm:hidden absolute inset-0 z-30 bg-slate-950/20 backdrop-blur-[1px]" />}
-                        <aside className={`${showMobileTools ? 'flex' : 'hidden'} mobile-tools sm:flex fixed sm:static inset-x-0 bottom-0 sm:inset-auto w-full sm:w-64 max-h-[72dvh] sm:max-h-none bg-white border-t sm:border-t-0 sm:border-r border-slate-200 flex-col overflow-y-auto p-4 sm:p-5 space-y-6 scrollbar-hide z-40 shrink-0 shadow-2xl sm:shadow-xl rounded-t-3xl sm:rounded-none`}>
+                        <aside className={`${showMobileTools ? 'flex' : 'hidden'} mobile-tools sm:flex fixed inset-x-0 bottom-0 w-full max-h-[72dvh] bg-white border-t border-slate-200 flex-col overflow-y-auto p-4 space-y-6 scrollbar-hide z-40 shrink-0 shadow-2xl rounded-t-3xl ${baseEl ? 'sm:static sm:inset-auto sm:w-64 sm:max-h-none sm:border-t-0 sm:border-r sm:p-5 sm:shadow-xl sm:rounded-none' : 'sm:absolute sm:inset-0 sm:w-full sm:max-h-none sm:border-0 sm:bg-slate-900/30 sm:p-8 sm:items-center sm:justify-center sm:overflow-hidden sm:rounded-none'}`}>
                             <div className="sm:hidden sticky -top-4 z-10 -mx-4 -mt-4 mb-1 flex items-center justify-between border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur">
                                 <div>
                                     <p className="text-sm font-black text-slate-800">{baseEl ? '編集ツール' : '家のサイズを設定'}</p>
@@ -939,25 +939,30 @@
                                 )}
                             </div>
                             {!baseEl ? (
-                                <section className="space-y-4 pt-1">
-                                    <div className="overflow-hidden rounded-2xl border border-[#d8d1c2] bg-[#f7f2e8] shadow-lg">
+                                <section className="space-y-4 pt-1 sm:grid sm:w-full sm:max-w-6xl sm:max-h-full sm:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)] sm:gap-8 sm:space-y-0 sm:overflow-y-auto sm:rounded-[2rem] sm:bg-white sm:p-7 sm:shadow-2xl">
+                                    <div className="overflow-hidden rounded-2xl border border-[#d8d1c2] bg-[#f7f2e8] shadow-lg sm:self-start">
                                         <img
-                                            src="./assets/madori-social-cover.png"
-                                            alt="間取りスケッチャー。わが家の間取り、ほんとうにこれでいい？"
+                                            src="./assets/madori-social-cover-v2.png"
+                                            alt="間取りスケッチャー。まずは、部屋の広さと並びから。"
                                             className="aspect-[1.9/1] w-full object-cover"
                                         />
                                         <div className="border-t border-[#ded6c6] bg-[#fbf7ef] px-4 py-4">
                                             <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#bf6b32]">Floor plan sketcher</p>
                                             <h2 className="mt-1 font-black leading-snug text-[#183b2d] sm:text-[15px]">
-                                                わが家の間取り、<br className="hidden sm:block" />ほんとうにこれでいい？
+                                                まずは、部屋の広さと<br className="hidden sm:block" />並びから。
                                             </h2>
                                             <p className="mt-2 text-[10px] font-bold leading-relaxed text-[#657267]">
-                                                広さを決めて、部屋を動かして。暮らしのかたちを、目で確かめよう。
+                                                家づくりの初期段階に、部屋の大きさと大まかな配置を比べてみよう。
                                             </p>
                                         </div>
                                     </div>
-                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">家のサイズを決定</h3>
-                                    <div className="space-y-4 text-left">
+                                    <div className="space-y-4 sm:pr-1">
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500">Initial setup</p>
+                                            <h3 className="mt-1 text-lg font-black text-slate-800">家の外形を決める</h3>
+                                            <p className="mt-1 text-[10px] font-bold text-slate-400">あとからサイドバーで寸法を調整できます。</p>
+                                        </div>
+                                        <div className="space-y-4 text-left">
                                         <div>
                                             <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">寸法モジュール</p>
                                             <div className="grid grid-cols-2 gap-2">
@@ -987,10 +992,7 @@
                                                     <button
                                                         key={count}
                                                         type="button"
-                                                        onClick={() => {
-                                                            setFloorCount(count);
-                                                            if (count > 1) setStartMode('empty');
-                                                        }}
+                                                        onClick={() => setFloorCount(count)}
                                                         className={`rounded-xl border-2 py-3 text-center text-[11px] font-black transition-all ${floorCount === count ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
                                                     >
                                                         {count === 1 ? '1フロア' : `${count}フロア`}
@@ -1003,23 +1005,22 @@
                                             <div className="grid grid-cols-2 gap-2">
                                                 <button
                                                     type="button"
-                                                    disabled={floorCount > 1}
                                                     onClick={() => setStartMode('rooms')}
-                                                    className={`rounded-xl border-2 p-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-40 ${startMode === 'rooms' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
+                                                    className={`rounded-xl border-2 p-3 text-left transition-all ${startMode === 'rooms' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
                                                 >
-                                                    <span className="block text-[11px] font-black">部屋を配置</span>
-                                                    <span className="mt-1 block text-[9px] font-bold opacity-70">8室をランダム配置</span>
+                                                    <span className="block text-[11px] font-black">部屋を適当に配置</span>
+                                                    <span className="mt-1 block text-[9px] font-bold opacity-70">1Fに8室をランダム配置</span>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setStartMode('empty')}
                                                     className={`rounded-xl border-2 p-3 text-left transition-all ${startMode === 'empty' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-500'}`}
                                                 >
-                                                    <span className="block text-[11px] font-black">空から開始</span>
+                                                    <span className="block text-[11px] font-black">部屋を配置しない</span>
                                                     <span className="mt-1 block text-[9px] font-bold opacity-70">外形のみを配置</span>
                                                 </button>
                                             </div>
-                                            {floorCount > 1 && <p className="mt-2 text-[9px] font-bold text-slate-400">複数フロアは空の状態から開始します。</p>}
+                                            {floorCount > 1 && startMode === 'rooms' && <p className="mt-2 text-[9px] font-bold text-slate-400">部屋のランダム配置は1Fのみに適用されます。</p>}
                                         </div>
                                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-center shadow-inner" aria-live="polite">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">家の外形面積</p>
@@ -1027,6 +1028,7 @@
                                             <p className="mt-1 text-[10px] font-bold text-slate-500">{baseArea.sqm}㎡（{baseArea.mWidth}m × {baseArea.mHeight}m）</p>
                                         </div>
                                         <button onClick={() => addElement({ label: '家の外形', defaultW: baseDraft.w, defaultH: baseDraft.h, color: 'bg-white/50 border-slate-300 border-2 border-dashed', type: 'base' })} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase shadow-xl hover:bg-indigo-700 transition-all mt-2 tracking-widest">確定して配置</button>
+                                        </div>
                                     </div>
                                 </section>
                             ) : (
