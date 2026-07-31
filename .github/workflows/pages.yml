@@ -32,6 +32,7 @@ jobs:
         run: |
           mkdir -p _site/storage
           cp -R storage/dist/. _site/storage/
+          mv _site/storage/index.source.html _site/storage/index.html
           if [ -d madori ]; then cp -R madori _site/madori; fi
           if [ -d solar ]; then cp -R solar _site/solar; fi
       - uses: actions/configure-pages@v5
