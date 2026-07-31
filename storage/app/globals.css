@@ -116,8 +116,10 @@ button { color: inherit; }
 
 .share-panel { padding: 20px; }
 .share-panel h3 { margin: 0 0 13px; font-family: "Yu Mincho", serif; font-size: 15px; }
-.share-panel button { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: white; cursor: pointer; font-size: 9px; }
+.share-panel button { min-height: 42px; padding: 8px 12px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); border-radius: 8px; background: white; cursor: pointer; font-size: 9px; }
+.share-panel button img { width: 22px; height: 22px; flex: 0 0 22px; object-fit: contain; }
 .share-panel .share-primary { width: 100%; color: white; background: var(--green); border-color: var(--green); font-size: 11px; font-weight: 700; }
+.share-panel .share-primary img { width: 24px; height: 24px; filter: brightness(0) invert(1); }
 .share-panel > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .share-panel > p { margin: 10px 0 0; color: var(--green); text-align: center; font-size: 8px; }
 
