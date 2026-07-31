@@ -295,18 +295,17 @@ export default function Home() {
         </div>
 
         <div className="workspace">
-          <section className="input-panel">
-            <div className="step-heading compact"><span>02</span><div><h2>持ち物の数</h2><p>だいたいの数でも試せます</p></div></div>
-            {renderInputs()}
-            <div className="mode-block">
-              <div className="step-heading compact"><span>03</span><div><h2>収納のサイズ</h2><p>決まっている範囲を教えてください</p></div></div>
-              <div className="mode-options">
-                <button type="button" className={state.storageMode === "unknown" ? "selected" : ""} onClick={() => update("storageMode", "unknown")}><b>決まっていない</b><small>必要な3寸法を知りたい</small></button>
-                <button type="button" className={state.storageMode === "partial" ? "selected" : ""} onClick={() => update("storageMode", "partial")}><b>部分的に決まっている</b><small>未定の寸法だけ知りたい</small></button>
-                <button type="button" className={state.storageMode === "known" ? "selected" : ""} onClick={() => update("storageMode", "known")}><b>すべて決まっている</b><small>十分に収まるか知りたい</small></button>
-              </div>
-              {state.storageMode !== "unknown" && renderStorageInputs()}
+          <div className="step-heading"><span>02</span><div><h2>持ち物の数</h2><p>だいたいの数でも試せます</p></div></div>
+          <section className="input-panel inventory-panel">{renderInputs()}</section>
+
+          <div className="step-heading"><span>03</span><div><h2>収納のサイズ</h2><p>決まっている範囲を教えてください</p></div></div>
+          <section className="input-panel storage-panel">
+            <div className="mode-options">
+              <button type="button" className={state.storageMode === "unknown" ? "selected" : ""} onClick={() => update("storageMode", "unknown")}><b>決まっていない</b><small>必要な3寸法を知りたい</small></button>
+              <button type="button" className={state.storageMode === "partial" ? "selected" : ""} onClick={() => update("storageMode", "partial")}><b>部分的に決まっている</b><small>未定の寸法だけ知りたい</small></button>
+              <button type="button" className={state.storageMode === "known" ? "selected" : ""} onClick={() => update("storageMode", "known")}><b>すべて決まっている</b><small>十分に収まるか知りたい</small></button>
             </div>
+            {state.storageMode !== "unknown" && renderStorageInputs()}
             <label className="margin-field"><span><b>増える分・出し入れの余裕</b><small>{state.margin}%</small></span><input type="range" min="0" max="30" step="5" value={state.margin} onChange={(event) => update("margin", Number(event.target.value))} /><span className="range-labels"><small>ぴったり</small><small>ゆったり</small></span></label>
           </section>
 
