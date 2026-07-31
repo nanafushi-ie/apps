@@ -8,7 +8,7 @@
       content="地域や電気使用量から、太陽光発電と蓄電池の長期コストを比較できるシミュレーター"
     />
     <title>ひだまりシミュレータ｜太陽光コストシミュレーター</title>
-    <link rel="stylesheet" href="./styles.css?v=20260730-5" />
+    <link rel="stylesheet" href="./styles.css?v=20260730-7" />
   </head>
   <body>
     <header class="site-header">
@@ -28,7 +28,7 @@
         <h1>わが家の太陽光、<br /><em>いつ元が取れる？</em></h1>
         <p>
           地域・暮らし・設備の条件から、30年間の支出を見える化。
-          太陽光なし、太陽光のみ、蓄電池ありを同じ条件で比べます。
+          太陽光なし、太陽光パネルのみ、太陽光パネル＋蓄電池を同じ条件で比べます。
         </p>
       </section>
 
@@ -80,13 +80,31 @@
                 </span>
                 <input id="solarPreset" type="checkbox" checked />
               </label>
+              <label id="lifestyleField" class="preset-lifestyle">
+                <span class="label-title">
+                  日中の過ごし方
+                  <button class="info-button" type="button"
+                    data-help-title="日中の過ごし方と自家消費率"
+                    data-help="昼間に家で電気を使う機会が多いほど、発電した電気をその場で使いやすくなります。公的資料で使われている住宅用太陽光の平均的な目安30%を中心に、このアプリでは「ほとんど不在」20%、「ときどき在宅」30%、「在宅が多い」40%として概算します。この3つの数値は暮らし方による違いを試すための目安で、実測値ではありません。"
+                    data-help-url="https://www.meti.go.jp/shingikai/santeii/pdf/055_01_00.pdf"
+                    data-help-link="経済産業省の資料を見る">i</button>
+                </span>
+                <select id="daytimeLifestyle">
+                  <option value="20">昼間はほとんど不在（20%）</option>
+                  <option value="30" selected>日中もときどき在宅（30%）</option>
+                  <option value="40">日中の在宅が多い（40%）</option>
+                </select>
+                <small>「おまかせ」の間は、選んだ暮らし方から家庭で使う割合を自動設定します。</small>
+              </label>
               <div class="field-grid">
                 <label>
                   <span class="label-title">
                     太陽光パネルの大きさ
                     <button class="info-button" type="button"
                       data-help-title="パネル容量（kW）"
-                      data-help="パネルが一度に発電できる最大の大きさです。住宅用の実績は中央値4.8kW、平均5.2kWで、このアプリのおまかせは5kWです。一般的な戸建てでは4〜6kWがひとつの目安ですが、屋根の広さや形で変わります。年間使用量を地域の「1kW当たり年間発電量」で割ると、年間に使う電気と同程度を作るための大きさを概算できます。ただし、発電する時間と電気を使う時間は一致しないため、同じ量を発電してもすべてを家庭で使えるわけではありません。">i</button>
+                      data-help="パネルが一度に発電できる最大の大きさです。住宅用の実績は中央値4.8kW、平均5.2kWで、このアプリのおまかせは5kWです。一般的な戸建てでは4〜6kWがひとつの目安ですが、屋根の広さや形で変わります。年間使用量を地域の「1kW当たり年間発電量」で割ると、年間に使う電気と同程度を作るための大きさを概算できます。ただし、発電する時間と電気を使う時間は一致しないため、同じ量を発電してもすべてを家庭で使えるわけではありません。"
+                      data-help-url="https://www.enecho.meti.go.jp/committee/council/basic_policy_subcommittee/mitoshi/cost_wg/2024/data/06_04.pdf"
+                      data-help-link="資源エネルギー庁の資料を見る">i</button>
                   </span>
                   <span class="input-unit">
                     <input id="panelCapacity" type="number" min="0.5" max="30" step="0.1" value="5" />
@@ -149,13 +167,15 @@
                   発電した電気を家で使う割合
                   <button class="info-button" type="button"
                     data-help-title="自家消費率"
-                    data-help="太陽光で発電した電気のうち、売らずに自宅で使う割合です。昼間に在宅している時間が長い家庭ほど高くなりやすく、蓄電池があると夜にも回せるため、さらに高くできます。">i</button>
+                    data-help="太陽光で発電した電気のうち、売らずに自宅で使う割合（自家消費率）です。住宅用太陽光では30%程度が平均的な目安です。昼間に在宅している時間が長い家庭や、洗濯・食洗機などを昼間に使う家庭ほど高くなりやすく、蓄電池があると夜にも回せます。"
+                    data-help-url="https://www.meti.go.jp/shingikai/santeii/pdf/055_01_00.pdf"
+                    data-help-link="経済産業省の資料を見る">i</button>
                 </span>
                 <div class="range-row">
                   <input id="selfConsumption" type="range" min="10" max="80" step="1" value="30" />
                   <output id="selfConsumptionOutput">30%</output>
                 </div>
-                <small>発電した電気のうち、その場で家庭内に使える割合です。残りは売電すると仮定します。</small>
+                <small>標準的な目安は30%です。「おまかせ」では日中の過ごし方から20〜40%を選び、残りは売電すると仮定します。</small>
               </label>
             </fieldset>
 
@@ -164,7 +184,9 @@
                 <span>03</span> 蓄電池
                 <button class="info-button" type="button"
                   data-help-title="蓄電池"
-                  data-help="昼間に太陽光で作った電気をためて、夜や停電時に使うための機器です。電力会社から買う電気を減らす経済的な役割に加え、災害などで停電したときに照明、冷蔵庫、スマートフォンの充電などへ電気を供給する防災の役割があります。停電時に使える機器や時間は、蓄電池の容量、出力、配線方法、残量によって異なります。">i</button>
+                  data-help="昼間に太陽光で作った電気をためて、夜や停電時に使うための機器です。電力会社から買う電気を減らす経済的な役割に加え、災害などで停電したときに照明、冷蔵庫、スマートフォンの充電などへ電気を供給する防災の役割があります。停電時に使える機器や時間は、蓄電池の容量、出力、配線方法、残量によって異なります。"
+                  data-help-url="https://www.enecho.meti.go.jp/about/whitepaper/2024/html/3-3-2.html"
+                  data-help-link="資源エネルギー庁の解説を見る">i</button>
               </legend>
               <label class="toggle-row">
                 <span>
@@ -263,7 +285,9 @@
                       電気代が毎年上がる割合
                       <button class="info-button" type="button"
                         data-help-title="電気代の年間上昇率"
-                        data-help="将来、電気を買う価格が毎年どのくらい上がると考えるかを表します。初期値の3.0%は、総務省の電気代指数が2020年の100から2025年の118.1へ上昇した中期傾向（年平均約3.4%）を参考に、長期試算向けに丸めた値です。将来の価格は不確実なので、0〜5%でも比べてください。">i</button>
+                        data-help="将来、電気を買う価格が毎年どのくらい上がると考えるかを表します。初期値の3.0%は、総務省の電気代指数が2020年の100から2025年の118.1へ上昇した中期傾向（年平均約3.4%）を参考に、長期試算向けに丸めた値です。将来の価格は不確実なので、0〜5%でも比べてください。"
+                        data-help-url="https://www.e-stat.go.jp/stat-search/file-download?fileKind=2&amp;statInfId=000040430821"
+                        data-help-link="総務省の公的統計を見る">i</button>
                     </span>
                     <div class="range-row">
                       <input id="priceGrowth" type="range" min="0" max="8" step="0.1" value="3" />
@@ -289,7 +313,9 @@
                       1〜4年目に電気を売る価格
                       <button class="info-button" type="button"
                         data-help-title="売電単価"
-                        data-help="太陽光で作って使い切れなかった電気を、電力会社へ1kWh売ったときに受け取る金額です。電力会社から電気を買うときの「買電単価」とは別の価格です。">i</button>
+                        data-help="太陽光で作って使い切れなかった電気を、電力会社へ1kWh売ったときに受け取る金額です。電力会社から電気を買うときの「買電単価」とは別の価格です。初期値は2026年度の住宅用太陽光の制度価格を参考にしています。"
+                        data-help-url="https://www.meti.go.jp/press/2025/03/20260319004/20260319004.html"
+                        data-help-link="経済産業省の制度資料を見る">i</button>
                     </span>
                     <span class="input-unit">
                       <input id="fitEarly" type="number" min="0" max="100" step="0.1" value="24" />
@@ -359,6 +385,15 @@
             </div>
           </div>
 
+          <div class="summary-heading">
+            <h3>
+              30年間に支払う合計金額
+              <button class="info-button" type="button"
+                data-help-title="30年間のトータルコスト"
+                data-help="今から30年間にかかるお金の合計です。太陽光パネルや蓄電池を設置する場合は、最初の設置費用、電力会社へ払う電気代、パワコンや蓄電池の交換費用を足し、補助金と電気を売って得る収入を差し引いています。数字が小さいほど、30年間の金銭的な負担が少ない試算です。">i</button>
+            </h3>
+            <p>設置費用・電気代・機器交換を足し、補助金と電気を売った収入を差し引いた概算です。</p>
+          </div>
           <div id="summaryCards" class="summary-cards"></div>
 
           <article class="chart-card">
@@ -382,7 +417,7 @@
 
           <div class="insight-grid">
             <article class="break-even-card">
-              <p class="card-kicker">太陽光のみ｜元が取れるまで</p>
+              <p class="card-kicker">太陽光パネルのみ｜元が取れるまで</p>
               <h3 id="breakEvenHeadline"></h3>
               <p id="breakEvenText"></p>
             </article>
@@ -406,7 +441,7 @@
                     <th>年</th>
                     <th>発電量</th>
                     <th>太陽光なし</th>
-                    <th>太陽光のみ</th>
+                    <th>太陽光パネルのみ</th>
                     <th>蓄電池あり</th>
                   </tr>
                 </thead>
@@ -449,10 +484,11 @@
         <p class="step-label">ことばの説明</p>
         <h2 id="helpTitle"></h2>
         <p id="helpText"></p>
+        <a id="helpSource" class="help-source-link" href="#" target="_blank" rel="noreferrer" hidden></a>
         <button class="primary-button" type="button" data-close-help>わかりました</button>
       </section>
     </div>
 
-    <script src="./app.js?v=20260730-5"></script>
+    <script src="./app.js?v=20260730-7"></script>
   </body>
 </html>

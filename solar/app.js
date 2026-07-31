@@ -104,9 +104,14 @@ function setSectionLocked(sectionId, locked, excludedIds) {
 }
 
 function applyPresetState() {
-  if ($("solarPreset").checked) setPresetValues(SOLAR_PRESET);
+  const solarPresetEnabled = $("solarPreset").checked;
+  if (solarPresetEnabled) {
+    setPresetValues(SOLAR_PRESET);
+    $("selfConsumption").value = $("daytimeLifestyle").value;
+  }
   if ($("batteryPreset").checked) setPresetValues(BATTERY_PRESET);
-  setSectionLocked("solarSettings", $("solarPreset").checked, ["solarPreset"]);
+  $("lifestyleField").hidden = !solarPresetEnabled;
+  setSectionLocked("solarSettings", solarPresetEnabled, ["solarPreset", "daytimeLifestyle"]);
   setSectionLocked(
     "batterySettings",
     $("batteryPreset").checked,
@@ -230,7 +235,7 @@ function renderSummary(result) {
     { key: "none", label: "太陽光なし", value: last.noSolar, note: "30年間の累積支出" },
     {
       key: "solar",
-      label: "太陽光のみ",
+      label: "太陽光パネルのみ",
       value: last.solar,
       note: `${formatBreakEven(result.solarCrossing.final)}で元が取れる見込み`
     }
@@ -247,6 +252,7 @@ function renderSummary(result) {
     .map(
       (card) => `<article class="summary-card ${card.key}">
         <small>${card.label}</small>
+        <span class="summary-value-label">30年間のトータルコスト</span>
         <strong>${compactYen.format(card.value)}円</strong>
         <p>${card.note}</p>
       </article>`
@@ -350,7 +356,7 @@ function renderChart(result) {
   chartGeometry = { padding, plotW, plotH, maxValue, width: size.width, height: size.height };
   $("legend").innerHTML = [
     ["太陽光なし", COLORS.none],
-    ["太陽光のみ", COLORS.solar],
+    ["太陽光パネルのみ", COLORS.solar],
     ...(result.inputs.includeBattery ? [["蓄電池あり", COLORS.battery]] : [])
   ]
     .map(([label, color]) => `<span><i style="background:${color}"></i>${label}</span>`)
@@ -362,10 +368,10 @@ function renderInsights(result) {
   const last = result.data[result.data.length - 1];
   const solarSaving = last.noSolar - last.solar;
   if (result.solarCrossing.final == null) {
-    $("breakEvenHeadline").textContent = "太陽光のみは30年以内には元が取れない見込みです";
+    $("breakEvenHeadline").textContent = "太陽光パネルのみでは30年以内には元が取れない見込みです";
     $("breakEvenText").textContent = `30年後に支払う合計金額の差は${formatMoney(Math.abs(solarSaving))}です。最初にかかる費用や発電量を見直してみてください。`;
   } else {
-    $("breakEvenHeadline").textContent = `太陽光のみは約${result.solarCrossing.final.toFixed(1)}年で元が取れる見込みです`;
+    $("breakEvenHeadline").textContent = `太陽光パネルのみでは約${result.solarCrossing.final.toFixed(1)}年で元が取れる見込みです`;
     $("breakEvenText").textContent = `30年後には太陽光なしと比べて、支払う合計金額が${formatMoney(solarSaving)}少ない試算です。`;
   }
 
@@ -414,7 +420,7 @@ function renderTable(result) {
 function shareText(result) {
   const last = result.data[result.data.length - 1];
   const saving = last.noSolar - last.solar;
-  return `${result.inputs.prefecture}・太陽光${result.inputs.panelCapacity.toFixed(1)}kWでシミュレーションしました。\n\n太陽光のみで元が取れるまで：${formatBreakEven(result.solarCrossing.final)}\n30年後に減らせる金額：約${yen.format(Math.max(saving, 0) / 10000)}万円\n\n太陽光発電の導入効果をシミュレーションできます。\n${TOP_PAGE_URL}\n\n#ななふしの家 #太陽光発電 #住宅`;
+  return `${result.inputs.prefecture}・太陽光${result.inputs.panelCapacity.toFixed(1)}kWでシミュレーションしました。\n\n太陽光パネルのみで元が取れるまで：${formatBreakEven(result.solarCrossing.final)}\n30年後に減らせる金額：約${yen.format(Math.max(saving, 0) / 10000)}万円\n\n太陽光発電の導入効果をシミュレーションできます。\n${TOP_PAGE_URL}\n\n#ななふしの家 #太陽光発電 #住宅`;
 }
 
 function drawShareImage(result) {
@@ -455,7 +461,7 @@ function drawShareImage(result) {
   ctx.fill();
   ctx.fillStyle = "#8bc8b7";
   ctx.font = '700 24px "Hiragino Sans", sans-serif';
-  ctx.fillText("太陽光のみ", 104, 377);
+  ctx.fillText("太陽光パネルのみ", 104, 377);
   ctx.fillStyle = "#fff";
   ctx.font = '700 49px "Hiragino Sans", sans-serif';
   ctx.fillText(formatBreakEven(result.solarCrossing.final), 104, 449);
@@ -498,7 +504,7 @@ function drawShareImage(result) {
   ctx.fillText("30年後に減らせる金額", 105, 625);
   ctx.fillStyle = "#18312b";
   ctx.font = '700 50px "Hiragino Sans", sans-serif';
-  ctx.fillText(`太陽光のみ 約${yen.format(saving / 10000)}万円`, 105, 689);
+  ctx.fillText(`太陽光パネルのみ 約${yen.format(saving / 10000)}万円`, 105, 689);
   if (result.inputs.includeBattery) {
     ctx.fillStyle = "#24745f";
     ctx.font = '700 27px "Hiragino Sans", sans-serif';
@@ -546,14 +552,14 @@ function drawShareImage(result) {
   });
 
   ctx.fillStyle = "#687a75";
-  ctx.font = '600 21px "Hiragino Sans", sans-serif';
-  ctx.fillText("太陽光なし", 115, 1148);
-  ctx.fillStyle = COLORS.none; ctx.fillRect(245, 1136, 38, 7);
-  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光のみ", 345, 1148);
+  ctx.font = '600 19px "Hiragino Sans", sans-serif';
+  ctx.fillText("太陽光なし", 105, 1148);
+  ctx.fillStyle = COLORS.none; ctx.fillRect(220, 1136, 38, 7);
+  ctx.fillStyle = "#687a75"; ctx.fillText("太陽光パネルのみ", 300, 1148);
   ctx.fillStyle = COLORS.solar; ctx.fillRect(475, 1136, 38, 7);
   if (result.inputs.includeBattery) {
-    ctx.fillStyle = "#687a75"; ctx.fillText("蓄電池あり", 575, 1148);
-    ctx.fillStyle = COLORS.battery; ctx.fillRect(705, 1136, 38, 7);
+    ctx.fillStyle = "#687a75"; ctx.fillText("太陽光パネル＋蓄電池", 550, 1148);
+    ctx.fillStyle = COLORS.battery; ctx.fillRect(770, 1136, 38, 7);
   }
 
   ctx.fillStyle = "#687a75";
@@ -601,6 +607,16 @@ function closeShareModal() {
 function openHelpModal(button) {
   $("helpTitle").textContent = button.dataset.helpTitle;
   $("helpText").textContent = button.dataset.help;
+  const source = $("helpSource");
+  if (button.dataset.helpUrl) {
+    source.href = button.dataset.helpUrl;
+    source.textContent = button.dataset.helpLink || "参考資料を見る";
+    source.hidden = false;
+  } else {
+    source.hidden = true;
+    source.removeAttribute("href");
+    source.textContent = "";
+  }
   $("helpModal").hidden = false;
   document.body.style.overflow = "hidden";
   $("helpModal").querySelector("[data-close-help]").focus();
@@ -665,7 +681,7 @@ function handleChartMove(event) {
   const tooltip = $("chartTooltip");
   tooltip.innerHTML = `<strong>${year}年目</strong><br>
     太陽光なし：${formatMoney(row.noSolar)}<br>
-    太陽光のみ：${formatMoney(row.solar)}
+    太陽光パネルのみ：${formatMoney(row.solar)}
     ${latest.inputs.includeBattery ? `<br>蓄電池あり：${formatMoney(row.battery)}` : ""}`;
   tooltip.hidden = false;
   const maxLeft = rect.width - 170;
