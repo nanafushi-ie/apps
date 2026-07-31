@@ -269,7 +269,7 @@ export default function Home() {
               <div className="share-hashtags">#しまえる　#収納　#ななふしの家</div>
               <p className="result-disclaimer">一般的な持ち物寸法から算出した目安です。実際の内寸や収納方法によって変わります。</p>
             </div>
-            <div className="share-panel"><h3>この結果を家族と相談する</h3><button type="button" className="share-primary" onClick={() => void shareResult()}><img src={`${import.meta.env.BASE_URL}icons/share.png`} alt="" aria-hidden="true" />画像付きで共有</button><div><button type="button" onClick={() => void saveImage()}><img src={`${import.meta.env.BASE_URL}icons/save-image.png`} alt="" aria-hidden="true" />画像を保存</button><button type="button" onClick={() => void shareResult(true)}><img src={`${import.meta.env.BASE_URL}icons/x-share.png`} alt="" aria-hidden="true" />Xへ画像を共有</button></div>{message && <p role="status">{message}</p>}</div>
+            <div className="share-panel"><h3>結果を共有する</h3><button type="button" className="share-primary" onClick={() => void shareResult()}><img src={`${import.meta.env.BASE_URL}icons/share.png`} alt="" aria-hidden="true" />画像付きで共有</button><div><button type="button" onClick={() => void saveImage()}><img src={`${import.meta.env.BASE_URL}icons/save-image.png`} alt="" aria-hidden="true" />画像を保存</button><button type="button" onClick={() => void shareResult(true)}><img src={`${import.meta.env.BASE_URL}icons/x-share.png`} alt="" aria-hidden="true" />Xへ画像を共有</button></div>{message && <p role="status">{message}</p>}</div>
           </section>
         </div>
       </section>
