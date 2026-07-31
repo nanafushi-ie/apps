@@ -90,7 +90,7 @@ export default function Home() {
       rowHeight = boots ? 240 : 200;
       recommended = { width: 900, height: Math.max(900, Math.ceil(requiredLength / 900) * rowHeight + 100), depth: boots ? 350 : 320 };
       details = [`大人用 ${adult}足`, `子ども用 ${child}足`, `ブーツ ${boots}足`];
-      extraNote = "靴は1段に一列で並べる想定です。";
+      extraNote = "";
     } else if (state.category === "books") {
       const { paperback, standard, large } = state.books;
       count = paperback + standard + large;
@@ -152,6 +152,13 @@ export default function Home() {
       fit: fits,
       graphic: { filled: Math.min(100, capacityRatio * 100), units: state.category === "clothes" ? 5 : levels, kind },
       details,
+      count,
+      unit,
+      capacityCount,
+      overflowCount: Math.max(0, count - capacityCount),
+      spareCount: Math.max(0, capacityCount - count),
+      output,
+      levels,
       dimensions: (Object.keys(dimensionLabels) as DimensionKey[]).map((key) => ({ key, label: dimensionLabels[key], value: output[key], calculated: dimensionUnknown(key) })),
     };
   }, [state]);
@@ -223,6 +230,52 @@ export default function Home() {
     </div>
   );
 
+  const renderStorageDiagram = () => {
+    const widthCalculated = result.dimensions.find((item) => item.key === "width")?.calculated;
+    const heightCalculated = result.dimensions.find((item) => item.key === "height")?.calculated;
+    const depthCalculated = result.dimensions.find((item) => item.key === "depth")?.calculated;
+
+    if (state.category === "clothes") {
+      return (
+        <div className="elevation-wrap">
+          <div className={`dimension-line dimension-height ${heightCalculated ? "calculated" : "fixed"}`}><b>{result.output.height}</b><small>mm</small></div>
+          <div className="storage-elevation clothes-elevation">
+            <div className="hanger-zone"><span className="rail" />{Array.from({ length: 4 }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/clothes.png`} alt="" aria-hidden="true" />)}<small>掛ける衣類</small></div>
+            <div className="drawer-zone">{Array.from({ length: 4 }).map((_, index) => <span key={index} />)}<small>たたむ衣類</small></div>
+          </div>
+          <div className={`dimension-line dimension-width ${widthCalculated ? "calculated" : "fixed"}`}><b>{result.output.width}</b><small>mm</small></div>
+          <div className={`depth-label ${depthCalculated ? "calculated" : "fixed"}`}>奥行き {result.output.depth}mm</div>
+          <div className="diagram-summary">ハンガー {state.clothes.hanger + state.clothes.heavy}着・たたむ衣類 {state.clothes.folded}着</div>
+        </div>
+      );
+    }
+
+    const rows = Math.min(6, Math.max(2, result.levels));
+    const slots = rows * 4;
+    const filledSlots = Math.min(slots, Math.ceil((result.graphic.filled / 100) * slots));
+    const icon = state.category === "shoes" ? "shoes" : "books";
+
+    return (
+      <div className="elevation-wrap">
+        <div className={`dimension-line dimension-height ${heightCalculated ? "calculated" : "fixed"}`}><b>{result.output.height}</b><small>mm</small></div>
+        <div className={`storage-elevation shelf-elevation ${!result.fit ? "has-overflow" : ""}`}>
+          {Array.from({ length: rows }).map((_, row) => (
+            <div className="elevation-shelf-row" key={row}>
+              {Array.from({ length: 4 }).map((__, slot) => {
+                const filled = row * 4 + slot < filledSlots;
+                return <span key={slot} className={filled ? "occupied" : "empty-slot"}>{filled && <img src={`${import.meta.env.BASE_URL}icons/${icon}.png`} alt="" aria-hidden="true" />}</span>;
+              })}
+            </div>
+          ))}
+        </div>
+        <div className={`dimension-line dimension-width ${widthCalculated ? "calculated" : "fixed"}`}><b>{result.output.width}</b><small>mm</small></div>
+        <div className={`depth-label ${depthCalculated ? "calculated" : "fixed"}`}>奥行き {result.output.depth}mm</div>
+        <div className="diagram-summary">{result.count}{result.unit}を収納{result.fit ? `・約${result.spareCount}${result.unit}分の空き` : `・約${result.overflowCount}${result.unit}が収納外`}</div>
+        {!result.fit && <div className="overflow-items"><b>収納外</b>{Array.from({ length: Math.min(4, Math.max(1, result.overflowCount)) }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/${icon}.png`} alt="" aria-hidden="true" />)}</div>}
+      </div>
+    );
+  };
+
   return (
     <main>
       <header className="site-header"><a className="brand" href="#" aria-label="しまえる？ トップ"><span className="brand-mark">し</span><span>しまえる？</span></a><p>用途別収納サイズシミュレーター</p></header>
@@ -264,7 +317,7 @@ export default function Home() {
               <h2>{result.title}</h2><strong>{result.main}</strong>
               {result.usage !== null && <div className="usage"><div><span>収納使用率</span><b>{result.usage}%</b></div><div className="usage-track"><i style={{ width: `${Math.min(100, result.usage)}%` }} /></div></div>}
               {state.storageMode !== "known" && <div className="dimension-result">{result.dimensions.map((dimension) => <div key={dimension.key} className={dimension.calculated ? "calculated" : "fixed"}><small>{dimension.label}{dimension.calculated ? "（算出）" : "（固定）"}</small><b>{dimension.value}<span>mm</span></b></div>)}</div>}
-              <div className={`storage-visual visual-${result.graphic.kind}`} aria-label="収納量のイメージ">{Array.from({ length: Math.min(8, Math.max(3, result.graphic.units)) }).map((_, index, all) => <span key={index} className={index / all.length * 100 < result.graphic.filled ? "filled" : ""}>{result.graphic.kind === "shoes" ? "⌁  ⌁  ⌁" : result.graphic.kind === "books" ? "▥ ▥ ▥ ▥" : "♧ ♧ ♧"}</span>)}</div>
+              {renderStorageDiagram()}
               <p className="result-note">{result.note}</p>
               <div className="result-details">{result.details.map((detail) => <span key={detail}>{detail}</span>)}</div>
               <div className="share-hashtags">#しまえる　#収納　#ななふしの家</div>

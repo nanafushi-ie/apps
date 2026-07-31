@@ -98,11 +98,37 @@ button { color: inherit; }
 .dimension-result b { margin-top: 3px; color: var(--green); font-size: 15px; }
 .dimension-result b span { margin-left: 2px; font-size: 7px; font-weight: normal; }
 
-.storage-visual { min-height: 150px; margin: 20px 0 15px; padding: 9px; display: grid; gap: 5px; border: 5px solid var(--green); background: #fffdf7; }
-.storage-visual span { min-height: 22px; padding: 3px 8px; display: flex; align-items: center; overflow: hidden; border-bottom: 3px solid var(--green); color: #c9cec6; font-size: 15px; letter-spacing: .18em; }
-.storage-visual span.filled { color: var(--orange); background: #f7ead9; }
-.visual-clothes { grid-template-columns: repeat(2, 1fr); }
-.visual-clothes span { min-height: 45px; border: 0; border-bottom: 2px solid var(--green); }
+.elevation-wrap { position: relative; margin: 25px 4px 18px 34px; padding: 0 0 34px; }
+.storage-elevation { position: relative; min-height: 190px; border: 5px solid var(--green); background: #fffdf7; box-shadow: inset 0 0 0 1px rgba(52,92,73,.08); }
+.dimension-line { position: absolute; color: var(--green); font-size: 8px; text-align: center; }
+.dimension-line.calculated, .depth-label.calculated { color: var(--orange); }
+.dimension-line b { font-size: 10px; }
+.dimension-line small { margin-left: 2px; font-size: 6px; }
+.dimension-width { left: 0; right: 0; bottom: 13px; border-top: 1px solid currentColor; }
+.dimension-width::before, .dimension-width::after { content: ""; position: absolute; top: -4px; width: 1px; height: 7px; background: currentColor; }
+.dimension-width::before { left: 0; }
+.dimension-width::after { right: 0; }
+.dimension-height { width: 28px; left: -34px; top: 0; bottom: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid currentColor; }
+.dimension-height::before, .dimension-height::after { content: ""; position: absolute; right: -4px; width: 7px; height: 1px; background: currentColor; }
+.dimension-height::before { top: 0; }
+.dimension-height::after { bottom: 0; }
+.depth-label { position: absolute; right: 8px; top: 8px; z-index: 2; padding: 4px 7px; border-radius: 12px; color: var(--green); background: rgba(255,253,247,.9); font-size: 7px; font-weight: 700; }
+.shelf-elevation { padding: 7px 10px 0; display: flex; flex-direction: column; justify-content: stretch; }
+.elevation-shelf-row { min-height: 28px; flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); align-items: end; gap: 5px; border-bottom: 4px solid var(--green); }
+.elevation-shelf-row span { min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.elevation-shelf-row img { width: 100%; max-width: 43px; max-height: 38px; object-fit: contain; }
+.elevation-shelf-row .empty-slot { margin: 5px 2px; border-radius: 3px; background: #edf2e9; }
+.clothes-elevation { display: grid; grid-template-columns: 1.7fr 1fr; }
+.hanger-zone { position: relative; padding: 36px 9px 22px; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; border-right: 4px solid var(--green); }
+.hanger-zone .rail { position: absolute; left: 8px; right: 8px; top: 27px; height: 4px; border-radius: 4px; background: var(--green); }
+.hanger-zone img { width: 25%; margin: 0 -4px; object-fit: contain; }
+.hanger-zone small, .drawer-zone small { position: absolute; left: 0; right: 0; bottom: 6px; color: var(--muted); text-align: center; font-size: 7px; }
+.drawer-zone { position: relative; padding: 28px 8px 23px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+.drawer-zone > span { flex: 1; min-height: 22px; border: 2px solid var(--green); border-radius: 3px; background: var(--sage); }
+.diagram-summary { position: absolute; left: 0; bottom: -10px; color: var(--green); font-size: 9px; font-weight: 700; }
+.overflow-items { margin-top: 22px; padding: 8px 10px; display: flex; align-items: center; gap: 5px; border: 1px solid #d8a39a; border-radius: 7px; color: var(--red); background: #f7e7e2; }
+.overflow-items b { margin-right: 4px; font-size: 8px; }
+.overflow-items img { width: 28px; height: 28px; object-fit: contain; filter: saturate(.8); }
 .result-note { margin: 0; color: #59675f; font-size: 11px; line-height: 1.7; }
 .result-details { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px; }
 .result-details span { padding: 5px 8px; border-radius: 20px; color: var(--green); background: var(--sage); font-size: 8px; }
