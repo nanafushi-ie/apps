@@ -147,6 +147,13 @@ main { min-height: 100vh; }
 label { display: grid; gap: 6px; font-size: 9px; color: var(--muted); }
 input { width: 100%; border: 1px solid #d9ddd6; background: white; border-radius: 6px; padding: 9px 10px; color: var(--ink); outline: none; }
 input:focus { border-color: var(--green); box-shadow: 0 0 0 2px #e2ebe3; }
+.number-control { width: 100%; min-width: 0; height: 38px; display: grid; grid-template-columns: 34px minmax(46px, 1fr) 34px; border: 1px solid #d9ddd6; border-radius: 7px; overflow: hidden; background: white; }
+.number-control button { min-width: 34px; padding: 0; border: 0; background: #edf1eb; color: var(--green-dark); cursor: pointer; font-size: 16px; font-weight: 700; }
+.number-control button:hover { background: #dfe8de; }
+.number-control button:active { background: #ceddce; }
+.number-control input { min-width: 0; height: 100%; padding: 0 4px; border: 0; border-left: 1px solid #d9ddd6; border-right: 1px solid #d9ddd6; border-radius: 0; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; appearance: textfield; }
+.number-control input::-webkit-inner-spin-button, .number-control input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+.number-control input:focus { box-shadow: inset 0 0 0 2px #d7e4d8; }
 .row-total { padding: 7px 4px; }
 .row-total span { display: block; font-size: 9px; color: var(--muted); margin-bottom: 5px; }
 .row-total b { font-size: 15px; }
@@ -175,39 +182,40 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 2px #e2ebe3; }
 .preset-card-copy em { min-height: 26px; margin-top: 5px; color: var(--muted); font-size: 8px; font-style: normal; line-height: 1.5; }
 .preset-card-copy strong { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--green-dark); font-size: 9px; }
 .preset-card-copy strong i { float: right; width: 18px; height: 18px; margin-top: -4px; display: grid; place-items: center; border-radius: 50%; background: var(--green-dark); color: white; font-size: 12px; font-style: normal; }
-.storage-visual { position: relative; display: block; height: 116px; overflow: hidden; background: #dfe5da; }
-.visual-wall { position: absolute; left: 17%; right: 17%; top: 13%; bottom: 17%; background: #f6f2e8; border: 2px solid #718178; border-bottom-width: 4px; box-shadow: inset 0 0 0 5px rgba(255,255,255,.45); }
-.visual-floor { position: absolute; left: 8%; right: 8%; bottom: 7%; height: 11%; border: 1px solid rgba(71,90,79,.28); transform: skewX(-30deg); background: repeating-linear-gradient(90deg, transparent 0 18px, rgba(68,86,77,.1) 19px 20px); }
-.shelf { position: absolute; display: block; left: 7%; right: 7%; height: 3px; background: #697a70; }
-.shelf-a { top: 34%; }
-.shelf-b { top: 66%; }
-.rail { position: absolute; display: none; left: 10%; right: 10%; top: 28%; height: 2px; background: #697a70; }
-.box { position: absolute; display: block; bottom: 5%; width: 29%; height: 24%; border: 1px solid #8b8f80; background: #d6c5a3; }
-.box-a { left: 12%; }
-.box-b { right: 12%; background: #aebba6; }
-.coat { display: none; position: absolute; top: 32%; width: 19%; height: 42%; background: #b8a47d; clip-path: polygon(35% 0, 65% 0, 100% 24%, 82% 35%, 82% 100%, 18% 100%, 18% 35%, 0 24%); }
-.coat-a { left: 20%; }
-.coat-b { right: 20%; background: #809686; }
-.visual-person { display: none; position: absolute; right: 8%; bottom: 13%; width: 8px; height: 29px; background: #d07848; border-radius: 5px 5px 2px 2px; }
-.visual-person::before { content: ""; position: absolute; width: 9px; height: 9px; top: -8px; left: 0; border-radius: 50%; background: #d07848; }
-.visual-closet .rail, .visual-wic1 .rail, .visual-wic2 .rail { display: block; }
-.visual-closet .shelf, .visual-wic1 .shelf, .visual-wic2 .shelf { display: none; }
-.visual-closet .coat, .visual-wic1 .coat, .visual-wic2 .coat { display: block; }
-.visual-wic1 .visual-wall { left: 12%; right: 34%; }
-.visual-wic1 .visual-person, .visual-wic2 .visual-person { display: block; }
-.visual-wic2 .visual-wall { left: 7%; right: 24%; }
-.visual-wic2 .visual-wall::after { content: ""; position: absolute; right: -29%; top: 0; width: 24%; height: 100%; border: 2px solid #718178; background: #f6f2e8 repeating-linear-gradient(0deg, transparent 0 20px, #718178 21px 23px); }
-.visual-pantry .box { height: 18%; }
-.visual-pantry .visual-wall { background: repeating-linear-gradient(0deg, #f6f2e8 0 19px, #75857b 20px 22px); }
-.visual-pantry .shelf { display: none; }
-.visual-entry { background: #d8e1dc; }
-.visual-entry .visual-wall { left: 12%; right: 28%; background: repeating-linear-gradient(90deg, #f6f2e8 0 28px, #77877c 29px 31px); }
-.visual-entry .visual-person { display: block; }
-.visual-entry .box-a { height: 12%; width: 40%; }
-.visual-entry .box-b { height: 34%; }
-.visual-oshiire .visual-wall::before { content: ""; position: absolute; left: 49%; top: 0; bottom: 0; width: 2px; background: #718178; }
-.visual-oshiire .shelf-a { top: 50%; }
-.visual-oshiire .shelf-b { display: none; }
+.storage-blueprint { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; height: 132px; padding: 10px; background: #e2e8e1; color: #46574d; }
+.blueprint-view { min-width: 0; display: grid; grid-template-rows: 13px 1fr 12px; gap: 4px; }
+.blueprint-view > b { font-size: 7px; letter-spacing: .08em; }
+.blueprint-view > em { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; color: #66766c; font-size: 6px; font-style: normal; font-variant-numeric: tabular-nums; }
+.plan-outline, .elevation-outline { position: relative; display: block; min-height: 0; border: 2px solid #53665b; background: #f8f6ef; }
+.plan-outline { margin: 0 8px; }
+.plan-storage { position: absolute; display: block; background: repeating-linear-gradient(90deg, #b9c5b7 0 8px, #8fa08f 9px 10px); border: 1px solid #718275; }
+.plan-storage-a { left: 4px; right: 4px; top: 4px; height: 25%; }
+.plan-storage-b { display: none; left: 4px; right: 4px; bottom: 4px; height: 25%; }
+.plan-aisle { position: absolute; left: 18%; right: 18%; top: 43%; color: #9aa49d; text-align: center; font-size: 6px; font-style: normal; }
+.plan-opening { position: absolute; right: -2px; bottom: -2px; width: 32%; height: 4px; background: #f8f6ef; border-left: 1px solid #53665b; }
+.elevation-outline { margin: 0 2px; background: #f8f6ef; }
+.elevation-shelf { position: absolute; display: block; left: 5%; right: 5%; height: 2px; background: #687a6e; }
+.shelf-top { top: 27%; }
+.shelf-middle { top: 62%; }
+.elevation-divider { display: none; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #687a6e; }
+.elevation-rail { display: none; position: absolute; left: 9%; right: 9%; top: 34%; height: 2px; background: #687a6e; }
+.blueprint-closet .plan-storage-a, .blueprint-wic1 .plan-storage-a { height: 38%; }
+.blueprint-closet .plan-aisle { display: none; }
+.blueprint-closet .elevation-shelf, .blueprint-wic1 .elevation-shelf, .blueprint-wic2 .elevation-shelf { display: none; }
+.blueprint-closet .elevation-rail, .blueprint-wic1 .elevation-rail, .blueprint-wic2 .elevation-rail { display: block; }
+.blueprint-wic2 .plan-storage-b { display: block; }
+.blueprint-pantry .plan-storage-a { height: 18%; }
+.blueprint-pantry .plan-aisle { top: 55%; }
+.blueprint-pantry .elevation-outline { background: repeating-linear-gradient(0deg, #f8f6ef 0 14px, #7d8d82 15px 16px); }
+.blueprint-pantry .elevation-shelf { display: none; }
+.blueprint-entry .plan-storage-a { left: 4px; right: 58%; top: 4px; bottom: 4px; height: auto; }
+.blueprint-entry .plan-aisle { left: 45%; right: 4%; top: 42%; }
+.blueprint-entry .elevation-divider { display: block; }
+.blueprint-oshiire .plan-aisle { display: none; }
+.blueprint-oshiire .plan-storage-a { top: 4px; bottom: 4px; height: auto; }
+.blueprint-oshiire .elevation-divider { display: block; }
+.blueprint-oshiire .shelf-top { display: none; }
+.blueprint-oshiire .shelf-middle { top: 50%; height: 3px; }
 .manual-divider { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; color: var(--muted); font-size: 9px; }
 .manual-divider::before, .manual-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 footer { border-top: 1px solid var(--line); max-width: 1132px; margin: 0 auto; padding: 20px 0 50px; display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
@@ -289,7 +297,7 @@ footer button { border: 0; background: transparent; color: var(--muted); font-si
   .preset-section { margin-inline: -4px; padding: 16px 12px; }
   .preset-grid { grid-template-columns: 1fr 1fr; }
   .preset-title p { display: none; }
-  .storage-visual { height: 96px; }
+  .storage-blueprint { height: 122px; padding: 8px; gap: 5px; }
   footer { margin: 0 16px; }
 }
 

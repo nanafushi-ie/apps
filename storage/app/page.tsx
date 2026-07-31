@@ -522,9 +522,9 @@ export default function Home() {
             {items.map((item) => (
               <div className="edit-row" key={item.id}>
                 <label className="wide">カテゴリ<input value={item.category} onChange={(e) => updateItem(item.id, { category: e.target.value })} /></label>
-                <label>数量<input type="number" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })} /></label>
+                <label>数量<NumberInput value={item.quantity} min={0} step={1} ariaLabel={`${item.category}の数量`} onChange={(quantity) => updateItem(item.id, { quantity })} /></label>
                 <label>単位<input value={item.unitLabel} onChange={(e) => updateItem(item.id, { unitLabel: e.target.value })} /></label>
-                <label>L / 単位<input type="number" min="0" value={item.literPerUnit} onChange={(e) => updateItem(item.id, { literPerUnit: Number(e.target.value) })} /></label>
+                <label>L / 単位<NumberInput value={item.literPerUnit} min={0} step={5} ariaLabel={`${item.category}の1単位あたり容量`} onChange={(literPerUnit) => updateItem(item.id, { literPerUnit })} /></label>
                 <div className="row-total"><span>必要量</span><b>{fmt(itemLiters(item))} L</b></div>
                 <button className="delete" aria-label={`${item.category}を削除`} onClick={() => setItems((v) => v.filter((x) => x.id !== item.id))}>×</button>
               </div>
@@ -545,7 +545,7 @@ export default function Home() {
             <div className="preset-grid">
               {storagePresets.map((preset) => (
                 <button className="preset-card" key={preset.presetId} onClick={() => addStoragePreset(preset)}>
-                  <StorageVisual type={preset.visual} />
+                  <StorageVisual preset={preset} />
                   <span className="preset-card-copy">
                     <small>{preset.sizeLabel}</small>
                     <b>{preset.name}</b>
@@ -563,11 +563,11 @@ export default function Home() {
                 <div className="space-edit-top"><label>名称<input value={space.name} onChange={(e) => updateSpace(space.id, { name: e.target.value })} /></label><button className="delete" onClick={() => { setSpaces((v) => v.filter((x) => x.id !== space.id)); setItems((v) => v.map((item) => item.assignedSpaceId === space.id ? { ...item, assignedSpaceId: null } : item)); }}>×</button></div>
                 <label>用途タグ<input placeholder="例：衣類用" value={space.tag} onChange={(e) => updateSpace(space.id, { tag: e.target.value })} /></label>
                 <div className="dimensions">
-                  <label>幅 mm<input type="number" min="0" value={space.widthMm} onChange={(e) => updateSpace(space.id, { widthMm: Number(e.target.value) })} /></label>
+                  <label>幅 mm<NumberInput value={space.widthMm} min={0} step={50} ariaLabel={`${space.name}の幅`} onChange={(widthMm) => updateSpace(space.id, { widthMm })} /></label>
                   <span>×</span>
-                  <label>奥行 mm<input type="number" min="0" value={space.depthMm} onChange={(e) => updateSpace(space.id, { depthMm: Number(e.target.value) })} /></label>
+                  <label>奥行 mm<NumberInput value={space.depthMm} min={0} step={50} ariaLabel={`${space.name}の奥行`} onChange={(depthMm) => updateSpace(space.id, { depthMm })} /></label>
                   <span>×</span>
-                  <label>高さ mm<input type="number" min="0" value={space.heightMm} onChange={(e) => updateSpace(space.id, { heightMm: Number(e.target.value) })} /></label>
+                  <label>高さ mm<NumberInput value={space.heightMm} min={0} step={50} ariaLabel={`${space.name}の高さ`} onChange={(heightMm) => updateSpace(space.id, { heightMm })} /></label>
                 </div>
                 <label>有効率 <b>{Math.round(space.effectiveRate * 100)}%</b><input className="range" type="range" min="20" max="100" value={space.effectiveRate * 100} onChange={(e) => updateSpace(space.id, { effectiveRate: Number(e.target.value) / 100 })} /></label>
                 <div className="capacity-result"><span>有効収納容量</span><b>{fmt(liters(space))} L</b></div>
@@ -597,20 +597,48 @@ function ItemCard({ item, compact = false, onDrag }: { item: Item; compact?: boo
   );
 }
 
-function StorageVisual({ type }: { type: StoragePreset["visual"] }) {
+function NumberInput({ value, min, step, ariaLabel, onChange }: { value: number; min: number; step: number; ariaLabel: string; onChange: (value: number) => void }) {
+  const changeBy = (amount: number) => onChange(Math.max(min, Math.round((value + amount) * 100) / 100));
   return (
-    <span className={`storage-visual visual-${type}`} aria-hidden="true">
-      <span className="visual-wall">
-        <i className="shelf shelf-a" />
-        <i className="shelf shelf-b" />
-        <i className="rail" />
-        <i className="box box-a" />
-        <i className="box box-b" />
-        <i className="coat coat-a" />
-        <i className="coat coat-b" />
+    <span className="number-control">
+      <button type="button" aria-label={`${ariaLabel}を減らす`} onClick={() => changeBy(-step)}>−</button>
+      <input
+        type="number"
+        inputMode="decimal"
+        min={min}
+        step={step}
+        value={value}
+        aria-label={ariaLabel}
+        onChange={(event) => onChange(Math.max(min, Number(event.target.value) || 0))}
+      />
+      <button type="button" aria-label={`${ariaLabel}を増やす`} onClick={() => changeBy(step)}>＋</button>
+    </span>
+  );
+}
+
+function StorageVisual({ preset }: { preset: StoragePreset }) {
+  return (
+    <span className={`storage-blueprint blueprint-${preset.visual}`} aria-hidden="true">
+      <span className="blueprint-view plan-view">
+        <b>平面図</b>
+        <span className="plan-outline">
+          <i className="plan-storage plan-storage-a" />
+          <i className="plan-storage plan-storage-b" />
+          <i className="plan-aisle">通路</i>
+          <i className="plan-opening" />
+        </span>
+        <em>{preset.widthMm} × {preset.depthMm} mm</em>
       </span>
-      <span className="visual-floor"><i /></span>
-      <span className="visual-person"><i /></span>
+      <span className="blueprint-view elevation-view">
+        <b>正面図</b>
+        <span className="elevation-outline">
+          <i className="elevation-shelf shelf-top" />
+          <i className="elevation-shelf shelf-middle" />
+          <i className="elevation-divider" />
+          <i className="elevation-rail" />
+        </span>
+        <em>{preset.widthMm} × H{preset.heightMm}</em>
+      </span>
     </span>
   );
 }
