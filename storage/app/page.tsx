@@ -5,6 +5,7 @@ import html2canvas from "html2canvas";
 
 type Category = "shoes" | "clothes" | "books";
 type StorageMode = "unknown" | "partial" | "known";
+type ClothingLayout = "auto" | "side" | "below" | "split";
 type DimensionKey = "width" | "height" | "depth";
 
 type Dimensions = Record<DimensionKey, number> & Record<`${DimensionKey}Unknown`, boolean>;
@@ -15,6 +16,7 @@ type AppState = {
   clothes: { hanger: number; heavy: number; folded: number };
   books: { paperback: number; standard: number; large: number };
   dimensions: Dimensions;
+  clothingLayout: ClothingLayout;
   margin: number;
 };
 
@@ -25,6 +27,7 @@ const initialState: AppState = {
   clothes: { hanger: 35, heavy: 8, folded: 50 },
   books: { paperback: 80, standard: 45, large: 15 },
   dimensions: { width: 900, height: 1800, depth: 350, widthUnknown: false, heightUnknown: true, depthUnknown: true },
+  clothingLayout: "auto",
   margin: 15,
 };
 
@@ -81,7 +84,7 @@ export default function Home() {
     let count = 0;
     let unit = "個";
     let extraNote = "";
-    let clothingAllocation: { layout: "side" | "below" | "split"; layoutLabel: string; reason: string; pipeLength: number; regularPipe: number; coatPipe: number; hangingHeight: number; drawerHeight: number; drawerWidth: number; drawers: number; drawerColumns: number; drawerRows: number } | null = null;
+    let clothingAllocation: { layout: "side" | "below" | "split"; layoutLabel: string; reason: string; pipeLength: number; regularPipe: number; coatPipe: number; hangingHeight: number; drawerHeight: number; drawerWidth: number; drawers: number; drawerColumns: number; drawerRows: number; manual: boolean; shortageText: string | null; alternativeLayout: string | null } | null = null;
 
     if (state.category === "shoes") {
       const { adult, child, boots } = state.shoes;
@@ -129,18 +132,31 @@ export default function Home() {
         const overflow = Math.max(0, candidate.width - (fixedWidth ?? candidate.width)) * 5 + Math.max(0, candidate.height - (fixedHeight ?? candidate.height)) * 5 + Math.max(0, 600 - (fixedDepth ?? 600)) * 5;
         return overflow + candidate.width + Math.max(0, candidate.height - 2000) * 3;
       };
-      const heightCompatible = fixedHeight === null ? candidates : candidates.filter((candidate) => candidate.height <= fixedHeight);
-      const candidatesToRank = heightCompatible.length > 0 ? heightCompatible : candidates.filter((candidate) => candidate.layout === "side");
-      const chosen = [...candidatesToRank].sort((a, b) => score(a) - score(b))[0];
+      const isCompatible = (candidate: typeof candidates[number]) => (fixedWidth === null || candidate.width <= fixedWidth) && (fixedHeight === null || candidate.height <= fixedHeight) && (fixedDepth === null || 600 <= fixedDepth);
+      const autoCandidates = candidates.filter((candidate) => candidate.layout !== "below" || fixedHeight === null || candidate.height <= fixedHeight);
+      const compatibleCandidates = autoCandidates.filter(isCompatible);
+      const autoChosen = [...(compatibleCandidates.length > 0 ? compatibleCandidates : autoCandidates)].sort((a, b) => score(a) - score(b))[0];
+      const requested = state.storageMode !== "unknown" && state.clothingLayout !== "auto" ? candidates.find((candidate) => candidate.layout === state.clothingLayout) : null;
+      const manual = Boolean(requested);
+      const chosen = requested ?? autoChosen;
       const belowCandidate = candidates.find((candidate) => candidate.layout === "below");
-      const lowHeightReason = fixedHeight !== null && belowCandidate && belowCandidate.height > fixedHeight && chosen.layout !== "below"
+      const shortages = [
+        fixedWidth !== null && chosen.width > fixedWidth ? `幅が${chosen.width - fixedWidth}mm不足` : null,
+        fixedHeight !== null && chosen.height > fixedHeight ? `高さが${chosen.height - fixedHeight}mm不足` : null,
+        fixedDepth !== null && 600 > fixedDepth ? `奥行きが${600 - fixedDepth}mm不足` : null,
+      ].filter(Boolean) as string[];
+      const alternative = [...candidates].filter((candidate) => candidate.layout !== chosen.layout && isCompatible(candidate)).sort((a, b) => score(a) - score(b))[0];
+      const lowHeightReason = manual && shortages.length > 0
+        ? `指定した配置には${shortages.join("・")}しています。${alternative ? `「${alternative.layoutLabel}」なら現在の固定寸法に収まります。` : "固定した寸法の変更が必要です。"}`
+        : manual ? `指定した「${chosen.layoutLabel}」で割り付けます。${chosen.reason}`
+        : fixedHeight !== null && belowCandidate && belowCandidate.height > fixedHeight && chosen.layout !== "below"
         ? `高さ${fixedHeight}mmでは上下配置に必要な${belowCandidate.height}mmを確保できないため、必要高さが増えにくい横並びを選びます。`
         : chosen.reason;
-      clothingAllocation = { layout: chosen.layout, layoutLabel: chosen.layoutLabel, reason: lowHeightReason, pipeLength, regularPipe, coatPipe, hangingHeight: chosen.hangingHeight, drawerHeight: chosen.drawers.rows * 220, drawerWidth: chosen.drawers.width, drawers, drawerColumns: chosen.drawers.columns, drawerRows: chosen.drawers.rows };
+      clothingAllocation = { layout: chosen.layout, layoutLabel: chosen.layoutLabel, reason: lowHeightReason, pipeLength, regularPipe, coatPipe, hangingHeight: chosen.hangingHeight, drawerHeight: chosen.drawers.rows * 220, drawerWidth: chosen.drawers.width, drawers, drawerColumns: chosen.drawers.columns, drawerRows: chosen.drawers.rows, manual, shortageText: shortages.length > 0 ? shortages.join("・") : null, alternativeLayout: alternative?.layoutLabel ?? null };
       recommended = { width: chosen.width, height: chosen.height, depth: 600 };
       requiredLength = pipeLength;
       details = [`ハンガー ${hanger}着`, `コート・厚手 ${heavy}着`, `たたむ衣類 ${folded}着`];
-      extraNote = `おすすめは「${chosen.layoutLabel}」です。${lowHeightReason}`;
+      extraNote = `${manual ? "選択した配置" : "おすすめ"}は「${chosen.layoutLabel}」です。${lowHeightReason}`;
     }
 
     const output = { ...recommended };
@@ -269,6 +285,16 @@ export default function Home() {
     </div>
   );
 
+  const renderClothingLayoutOptions = () => {
+    const options: Array<{ value: ClothingLayout; label: string; description: string; disabled?: boolean }> = [
+      { value: "auto", label: "おまかせ", description: "寸法に合う配置を自動選択" },
+      { value: "side", label: "横並び", description: "高さを抑えやすい" },
+      { value: "below", label: "パイプ下に引き出し", description: "横幅を抑えやすい" },
+      { value: "split", label: "シャツ下＋コート分離", description: "丈の違いを活用", disabled: !(state.clothes.hanger > 0 && state.clothes.heavy > 0 && state.clothes.folded > 0) },
+    ];
+    return <div className="layout-selector"><div><b>収納レイアウト</b><small>収納内部の構成を選べます</small></div><div className="layout-options">{options.map((option) => <button type="button" key={option.value} disabled={option.disabled} className={state.clothingLayout === option.value ? "selected" : ""} aria-pressed={state.clothingLayout === option.value} onClick={() => update("clothingLayout", option.value)}><b>{option.label}</b><small>{option.disabled ? "3種類の衣類がある場合に選択可" : option.description}</small></button>)}</div></div>;
+  };
+
   const renderStorageDiagram = () => {
     const widthCalculated = result.dimensions.find((item) => item.key === "width")?.calculated;
     const heightCalculated = result.dimensions.find((item) => item.key === "height")?.calculated;
@@ -358,6 +384,7 @@ export default function Home() {
               <button type="button" className={state.storageMode === "known" ? "selected" : ""} onClick={() => update("storageMode", "known")}><b>すべて決まっている</b><small>十分に収まるか知りたい</small></button>
             </div>
             {state.storageMode !== "unknown" && renderStorageInputs()}
+            {state.category === "clothes" && state.storageMode !== "unknown" && renderClothingLayoutOptions()}
             <label className="margin-field"><span><b>増える分・出し入れの余裕</b><small>{state.margin}%</small></span><input type="range" min="0" max="30" step="5" value={state.margin} onChange={(event) => update("margin", Number(event.target.value))} /><span className="range-labels"><small>ぴったり</small><small>ゆったり</small></span></label>
           </section>
 
@@ -368,7 +395,7 @@ export default function Home() {
               <h2>{result.title}</h2><strong>{result.main}</strong>
               {result.usage !== null && <div className="usage"><div><span>収納使用率</span><b>{result.usage}%</b></div><div className="usage-track"><i style={{ width: `${Math.min(100, result.usage)}%` }} /></div></div>}
               {state.storageMode !== "known" && <div className="dimension-result">{result.dimensions.map((dimension) => <div key={dimension.key} className={dimension.calculated ? "calculated" : "fixed"}><small>{dimension.label}{dimension.calculated ? "（算出）" : "（固定）"}</small><b>{dimension.value}<span>mm</span></b></div>)}</div>}
-              {state.category === "clothes" && result.clothingAllocation && <><div className="layout-recommendation"><small>おすすめの割り付け</small><b>{result.clothingAllocation.layoutLabel}</b><p>{result.clothingAllocation.reason}</p></div><div className="clothing-allocation"><div><small>吊るす収納</small><b>パイプ合計 {result.clothingAllocation.pipeLength}<span>mm</span></b><p>{result.clothingAllocation.layout === "split" ? `シャツ用${result.clothingAllocation.regularPipe}mm・コート用${result.clothingAllocation.coatPipe}mm` : `${state.clothes.hanger + state.clothes.heavy}着分`}</p></div><div><small>たたむ収納</small><b>引き出し幅 {result.clothingAllocation.drawerWidth}<span>mm</span></b><p>{result.clothingAllocation.drawers}段を{result.clothingAllocation.drawerColumns}列 × 最大{result.clothingAllocation.drawerRows}段で配置</p></div></div>{result.clothingAllocation.layout === "below" && <div className="height-allocation"><span><small>吊るす部分の有効高さ</small><b>{result.clothingAllocation.hangingHeight}mm</b></span><i>＋</i><span><small>引き出し部分の高さ</small><b>{result.clothingAllocation.drawerHeight}mm</b></span><i>＝</i><span><small>必要な全体高さ</small><b>{result.clothingAllocation.hangingHeight + result.clothingAllocation.drawerHeight}mm</b></span></div>}</>}
+              {state.category === "clothes" && result.clothingAllocation && <><div className={`layout-recommendation ${result.clothingAllocation.shortageText ? "layout-warning" : ""}`}><small>{result.clothingAllocation.manual ? "選択した割り付け" : "おすすめの割り付け"}</small><b>{result.clothingAllocation.layoutLabel}</b><p>{result.clothingAllocation.reason}</p></div><div className="clothing-allocation"><div><small>吊るす収納</small><b>パイプ合計 {result.clothingAllocation.pipeLength}<span>mm</span></b><p>{result.clothingAllocation.layout === "split" ? `シャツ用${result.clothingAllocation.regularPipe}mm・コート用${result.clothingAllocation.coatPipe}mm` : `${state.clothes.hanger + state.clothes.heavy}着分`}</p></div><div><small>たたむ収納</small><b>引き出し幅 {result.clothingAllocation.drawerWidth}<span>mm</span></b><p>{result.clothingAllocation.drawers}段を{result.clothingAllocation.drawerColumns}列 × 最大{result.clothingAllocation.drawerRows}段で配置</p></div></div>{result.clothingAllocation.layout === "below" && <div className="height-allocation"><span><small>吊るす部分の有効高さ</small><b>{result.clothingAllocation.hangingHeight}mm</b></span><i>＋</i><span><small>引き出し部分の高さ</small><b>{result.clothingAllocation.drawerHeight}mm</b></span><i>＝</i><span><small>必要な全体高さ</small><b>{result.clothingAllocation.hangingHeight + result.clothingAllocation.drawerHeight}mm</b></span></div>}</>}
               {renderStorageDiagram()}
               <p className="result-note">{result.note}</p>
               <div className="result-details">{result.details.map((detail) => <span key={detail}>{detail}</span>)}</div>
