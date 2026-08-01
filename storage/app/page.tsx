@@ -137,7 +137,7 @@ export default function Home() {
       const autoCandidates = candidates.filter((candidate) => candidate.layout !== "below" || fixedHeight === null || candidate.height <= fixedHeight);
       const compatibleCandidates = autoCandidates.filter(isCompatible);
       const autoChosen = [...(compatibleCandidates.length > 0 ? compatibleCandidates : autoCandidates)].sort((a, b) => score(a) - score(b))[0];
-      const requested = state.storageMode !== "unknown" && state.clothingLayout !== "auto" ? candidates.find((candidate) => candidate.layout === state.clothingLayout) : null;
+      const requested = state.clothingLayout !== "auto" ? candidates.find((candidate) => candidate.layout === state.clothingLayout) : null;
       const manual = Boolean(requested);
       const chosen = requested ?? autoChosen;
       const belowCandidate = candidates.find((candidate) => candidate.layout === "below");
@@ -293,7 +293,8 @@ export default function Home() {
       { value: "below", label: "パイプ下に引き出し", description: "横幅を抑えやすい" },
       { value: "split", label: "シャツ下＋コート分離", description: "丈の違いを活用", disabled: !(state.clothes.hanger > 0 && state.clothes.heavy > 0 && state.clothes.folded > 0) },
     ];
-    return <div className="layout-selector"><div><b>収納レイアウト</b><small>収納内部の構成を選べます</small></div><div className="layout-options">{options.map((option) => <button type="button" key={option.value} disabled={option.disabled} className={state.clothingLayout === option.value ? "selected" : ""} aria-pressed={state.clothingLayout === option.value} onClick={() => update("clothingLayout", option.value)}><b>{option.label}</b><small>{option.disabled ? "3種類の衣類がある場合に選択可" : option.description}</small></button>)}</div></div>;
+    const layoutIcon = (layout: ClothingLayout) => <span className={`layout-icon icon-${layout}`} aria-hidden="true"><i /><i /><i /></span>;
+    return <div className="layout-selector"><div><b>収納レイアウト</b><small>収納内部の構成を選べます</small></div><div className="layout-options">{options.map((option) => <button type="button" key={option.value} disabled={option.disabled} className={state.clothingLayout === option.value ? "selected" : ""} aria-pressed={state.clothingLayout === option.value} onClick={() => update("clothingLayout", option.value)}>{layoutIcon(option.value)}<span className="layout-option-copy"><b>{option.label}</b><small>{option.disabled ? "3種類の衣類がある場合に選択可" : option.description}</small></span></button>)}</div></div>;
   };
 
   const renderStorageDiagram = () => {
@@ -387,7 +388,7 @@ export default function Home() {
               <button type="button" className={state.storageMode === "known" ? "selected" : ""} onClick={() => update("storageMode", "known")}><b>すべて決まっている</b><small>十分に収まるか知りたい</small></button>
             </div>
             {state.storageMode !== "unknown" && renderStorageInputs()}
-            {state.category === "clothes" && state.storageMode !== "unknown" && renderClothingLayoutOptions()}
+            {state.category === "clothes" && renderClothingLayoutOptions()}
             <label className="margin-field"><span><b>増える分・出し入れの余裕</b><small>{state.margin}%</small></span><input type="range" min="0" max="30" step="5" value={state.margin} onChange={(event) => update("margin", Number(event.target.value))} /><span className="range-labels"><small>ぴったり</small><small>ゆったり</small></span></label>
           </section>
 
