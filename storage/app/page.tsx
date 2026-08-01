@@ -303,14 +303,16 @@ export default function Home() {
     if (state.category === "clothes") {
       const allocation = result.clothingAllocation!;
       const drawerBlocks = Array.from({ length: Math.min(6, allocation.drawers) }).map((_, index) => <span key={index} />);
-      const hangingIcons = Array.from({ length: 4 }).map((_, index) => <img key={index} src={`${import.meta.env.BASE_URL}icons/clothes.png`} alt="" aria-hidden="true" />);
+      const shirtIcons = Array.from({ length: 3 }).map((_, index) => <img key={`shirt-${index}`} className="shirt-side" src={`${import.meta.env.BASE_URL}icons/shirt-side.png`} alt="" aria-hidden="true" />);
+      const coatIcons = Array.from({ length: 2 }).map((_, index) => <img key={`coat-${index}`} className="coat-side" src={`${import.meta.env.BASE_URL}icons/coat-side.png`} alt="" aria-hidden="true" />);
+      const hangingIcons = state.clothes.heavy > 0 ? [...shirtIcons.slice(0, 2), ...coatIcons] : shirtIcons;
       const clothesLayout = allocation.layout === "split" ? (
         <>
           <div className="regular-stack" style={{ flex: Math.max(1, Math.max(allocation.regularPipe, allocation.drawerWidth)) }}>
-            <div className="hanger-zone regular-hanger"><span className="rail" />{hangingIcons}<small>シャツ用 {allocation.regularPipe}mm・高さ {allocation.hangingHeight}mm</small></div>
+            <div className="hanger-zone regular-hanger"><span className="rail" />{shirtIcons}<small>シャツ用 {allocation.regularPipe}mm・高さ {allocation.hangingHeight}mm</small></div>
             <div className="drawer-zone stacked-drawers">{drawerBlocks}<small>引き出し 幅{allocation.drawerWidth} × 高さ{allocation.drawerHeight}mm</small></div>
           </div>
-          <div className="hanger-zone coat-zone" style={{ flex: Math.max(1, allocation.coatPipe) }}><span className="rail" />{hangingIcons.slice(0, 2)}<small>コート用 {allocation.coatPipe}mm</small></div>
+          <div className="hanger-zone coat-zone" style={{ flex: Math.max(1, allocation.coatPipe) }}><span className="rail" />{coatIcons}<small>コート用 {allocation.coatPipe}mm</small></div>
         </>
       ) : allocation.layout === "below" ? (
         <div className="regular-stack full-stack"><div className="hanger-zone regular-hanger"><span className="rail" />{hangingIcons}<small>パイプ {allocation.pipeLength}mm・有効高さ {allocation.hangingHeight}mm</small></div><div className="drawer-zone stacked-drawers">{drawerBlocks}<small>引き出し 幅{allocation.drawerWidth} × 高さ{allocation.drawerHeight}mm</small></div></div>

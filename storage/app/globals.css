@@ -160,7 +160,8 @@ button { color: inherit; }
 .coat-zone { min-width: 72px; border-right: 0; }
 .hanger-zone { position: relative; padding: 36px 9px 22px; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; border-right: 4px solid var(--green); }
 .hanger-zone .rail { position: absolute; left: 8px; right: 8px; top: 27px; height: 4px; border-radius: 4px; background: var(--green); }
-.hanger-zone img { width: 25%; margin: 0 -4px; object-fit: contain; }
+.hanger-zone img { width: 25%; max-height: 100%; margin: 0 -4px; object-fit: contain; object-position: top center; }
+.hanger-zone img.coat-side { width: 29%; }
 .hanger-zone small, .drawer-zone small { position: absolute; left: 0; right: 0; bottom: 6px; color: var(--muted); text-align: center; font-size: 10px; font-weight: 700; }
 .drawer-zone { position: relative; padding: 28px 8px 23px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
 .drawer-zone > span { flex: 1; min-height: 22px; border: 2px solid var(--green); border-radius: 3px; background: var(--sage); }
