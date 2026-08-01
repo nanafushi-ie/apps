@@ -21,7 +21,7 @@ type AppState = {
 };
 
 const initialState: AppState = {
-  category: "shoes",
+  category: "clothes",
   storageMode: "unknown",
   shoes: { adult: 16, child: 6, boots: 2 },
   clothes: { hanger: 35, heavy: 8, folded: 50 },
@@ -32,10 +32,11 @@ const initialState: AppState = {
 };
 
 const categoryInfo: Record<Category, { label: string; description: string }> = {
-  shoes: { label: "靴", description: "靴棚の幅と高さを考える" },
   clothes: { label: "衣類", description: "掛ける・たたむを分けて計算" },
+  shoes: { label: "靴", description: "靴棚の幅と高さを考える" },
   books: { label: "書籍", description: "本棚の幅と高さを考える" },
 };
+const categoryOrder: Category[] = ["clothes", "shoes", "books"];
 
 const dimensionLabels: Record<DimensionKey, string> = { width: "内寸幅", height: "内寸高さ", depth: "内寸奥行き" };
 const roundUp = (value: number, unit: number) => Math.ceil(value / unit) * unit;
@@ -371,7 +372,7 @@ export default function Home() {
       <section className="simulator">
         <div className="step-heading"><span>01</span><div><h2>何を収納しますか？</h2><p>数が増減しやすいものから選べます</p></div></div>
         <div className="category-tabs">
-          {(Object.keys(categoryInfo) as Category[]).map((category) => <button type="button" key={category} className={state.category === category ? "active" : ""} onClick={() => update("category", category)}><img src={`${import.meta.env.BASE_URL}icons/${category}.png`} alt="" aria-hidden="true" /><b>{categoryInfo[category].label}</b><small>{categoryInfo[category].description}</small></button>)}
+          {categoryOrder.map((category) => <button type="button" key={category} className={state.category === category ? "active" : ""} onClick={() => update("category", category)}><img src={`${import.meta.env.BASE_URL}icons/${category}.png`} alt="" aria-hidden="true" /><b>{categoryInfo[category].label}</b><small>{categoryInfo[category].description}</small></button>)}
         </div>
 
         <div className="workspace">
