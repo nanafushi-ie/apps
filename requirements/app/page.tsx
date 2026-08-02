@@ -133,6 +133,8 @@ export default function Home() {
   const patchAnswer = (next:Answer) => setState(s => ({...s,answers:s.answers.map((a,i)=>i===s.respondent?next:a)}));
   const progress = ({welcome:0,basics:12,wishes:32,classify:55,rank:75,handoff:78,diff:90,document:100}[state.step]);
   const canBasics = Object.values(state.basics).every(Boolean);
+  const categoryIndex = CATEGORIES.indexOf(category);
+  const isLastCategory = categoryIndex === CATEGORIES.length - 1;
 
   function toggle(id:string) {
     const target=item(id); let selected=[...answer.selected];
@@ -162,6 +164,10 @@ export default function Home() {
     else setState(s=>({...s,answers,step:state.mode==="pair"?"diff":"document"}));
   }
   function reset() { if(confirm("入力内容をすべて消して、最初から始めますか？")){ localStorage.removeItem("ie-requirements-v1"); setState(initialState()); setCategory(CATEGORIES[0]); } }
+  function moveCategory(nextIndex:number) {
+    setCategory(CATEGORIES[nextIndex]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const diffs=useMemo(()=>ITEMS.map(it=>{
     const a=state.answers[0],b=state.answers[1],as=a.selected.includes(it.id),bs=b.selected.includes(it.id);
@@ -187,10 +193,11 @@ export default function Home() {
       <Nav next={()=>setState(s=>({...s,step:"wishes"}))} disabled={!canBasics} />
     </section>}
 
-    {state.step==="wishes" && <section className="screen"><StepHead number="02" title={`${state.mode==="pair"?`${state.respondent+1}人目の` : ""}希望を選んでください`} text="気になるものは、いったんすべて選んで大丈夫です。" />
-      <div className="category-tabs">{CATEGORIES.map(c=><button key={c} className={category===c?"active":""} onClick={()=>setCategory(c)}>{c}<small>{answer.selected.filter(id=>item(id).category===c).length||""}</small></button>)}</div>
+    {state.step==="wishes" && <section className="screen"><StepHead number="02" title={`${state.mode==="pair"?`${state.respondent+1}人目の` : ""}希望を選んでください`} text="気になるものは、いったんすべて選んで大丈夫です。カテゴリを順番に確認します。" />
+      <div className="category-position"><span>検討項目</span><b>{categoryIndex + 1} / {CATEGORIES.length}</b></div>
+      <div className="category-tabs">{CATEGORIES.map((c,index)=><button key={c} disabled={index>categoryIndex} className={category===c?"active":""} onClick={()=>moveCategory(index)}>{c}<small>{answer.selected.filter(id=>item(id).category===c).length||""}</small></button>)}</div>
       <div className="wish-grid">{ITEMS.filter(i=>i.category===category).map(i=><button key={i.id} className={answer.selected.includes(i.id)?"wish selected":"wish"} onClick={()=>toggle(i.id)}><span className="check">{answer.selected.includes(i.id)?"✓":"＋"}</span><b>{i.label}</b><small>{i.description}</small>{i.type==="single"&&<i>ひとつだけ選択</i>}</button>)}</div>
-      <div className="selection-count"><b>{answer.selected.length}</b>件を選択中</div><Nav back={()=>setState(s=>({...s,step:"basics"}))} next={()=>setState(s=>({...s,step:"classify"}))} disabled={answer.selected.length===0} label="仕分けへ進む" />
+      <div className="selection-count"><b>{answer.selected.length}</b>件を選択中</div><Nav back={()=>categoryIndex===0?setState(s=>({...s,step:"basics"})):moveCategory(categoryIndex-1)} next={()=>isLastCategory?setState(s=>({...s,step:"classify"})):moveCategory(categoryIndex+1)} disabled={isLastCategory&&answer.selected.length===0} label={isLastCategory?"仕分けへ進む":"次の項目へ進む"} />
     </section>}
 
     {state.step==="classify" && <section className="screen narrow"><StepHead number="03" title="絶対条件を決めましょう" text="初期値は「できれば」です。譲れないものだけをMustに変えます。" />
