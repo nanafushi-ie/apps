@@ -10,7 +10,8 @@ type Item = { id: string; category: string; label: string; description: string; 
 type DiffView = Omit<Item,"type"> & { selectionType:Item["type"]; diffType:"match"|"gap"|"one"|"conflict"; as:boolean; bs:boolean };
 type Help = { summary:string; effect:string; check:string };
 type Answer = { selected: string[]; priorities: Record<string, Priority>; ranking: string[]; scores: Record<string,number>; notes: Partial<Record<Layer,string>> };
-type Basics = { family: string; children: string; floor: string; budget: string; lot: string };
+type BasicOptionKey = "family" | "children" | "floor" | "budget" | "lot";
+type Basics = Record<BasicOptionKey,string> & { handleName:string; anonymous:boolean };
 
 const ITEMS: Item[] = [
   { id:"living-stairs", category:"間取り・動線", label:"リビング階段", description:"家族が自然に顔を合わせる動線", rationale:"家族が日常的に顔を合わせられる動線を重視", type:"multi" },
@@ -177,13 +178,13 @@ const getSpecRoom = (target:Item) => {
   return "家全体";
 };
 const EMPTY_ANSWER: Answer = { selected: [], priorities: {}, ranking: [], scores:{}, notes:{} };
-const EMPTY_BASICS: Basics = { family:"", children:"", floor:"", budget:"", lot:"" };
+const EMPTY_BASICS: Basics = { handleName:"", anonymous:false, family:"", children:"", floor:"", budget:"", lot:"" };
 const BASIC_OPTIONS = {
   family:["1人","2人","3人","4人","5人以上"], children:["子どもなし","未就学児","小学生","中高生","成人した子"],
   floor:["〜30坪","30〜35坪","35〜40坪","40坪〜","まだ未定"], budget:["〜2,500万円","2,500〜3,500万円","3,500〜4,500万円","4,500万円〜","まだ未定"],
   lot:["整形地","変形地","旗竿地","土地探し中","まだ未定"]
 };
-const BASIC_LABELS: Record<keyof Basics,string> = { family:"家族の人数", children:"子どもの年齢帯", floor:"延床面積の目安", budget:"建物予算", lot:"敷地条件" };
+const BASIC_LABELS: Record<BasicOptionKey,string> = { family:"家族の人数", children:"子どもの年齢帯", floor:"延床面積の目安", budget:"建物予算", lot:"敷地条件" };
 
 const item = (id:string) => ITEMS.find(i => i.id === id)!;
 const initialState = () => ({ step:"welcome" as Step, mode:"solo" as Mode, basics:EMPTY_BASICS, respondent:0, answers:[EMPTY_ANSWER, EMPTY_ANSWER] as Answer[] });
@@ -196,7 +197,7 @@ export default function Home() {
   const [sortState,setSortState] = useState<{sorted:string[]; pending:string[]; current:string; low:number; high:number; layerIndex:number; completed:string[]}|null>(null);
   const answer = state.answers[state.respondent];
 
-  useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
+  useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,basics:{...EMPTY_BASICS,...parsed.basics},step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
   useEffect(() => { if(ready) localStorage.setItem("ie-requirements-v1",JSON.stringify(state)); },[state,ready]);
   useEffect(() => { if(ready) window.scrollTo(0,0); },[state.step,ready]);
   useEffect(() => {
@@ -207,7 +208,7 @@ export default function Home() {
   },[helpItemId]);
   const patchAnswer = (next:Answer) => setState(s => ({...s,answers:s.answers.map((a,i)=>i===s.respondent?next:a)}));
   const progress = ({welcome:0,basics:12,wishes:32,classify:55,rank:75,handoff:78,diff:90,document:100}[state.step]);
-  const canBasics = Object.values(state.basics).every(Boolean);
+  const canBasics = (Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).every(key=>Boolean(state.basics[key])) && (state.basics.anonymous || Boolean(state.basics.handleName.trim()));
   const categoryIndex = CATEGORIES.indexOf(category);
   const isLastCategory = categoryIndex === CATEGORIES.length - 1;
   const categoryStep = CATEGORY_STEPS[categoryIndex] ?? CATEGORY_STEPS[0];
@@ -285,7 +286,7 @@ export default function Home() {
     </section>}
 
     {state.step==="basics" && <section className="screen narrow"><StepHead number="01" title="わが家の前提を教えてください" text="近いものをひとつずつ選びます。あとから変更できます。" />
-      <div className="basic-list">{(Object.keys(BASIC_OPTIONS) as (keyof Basics)[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";return <fieldset key={key}><legend><span>{String(idx+1).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
+      <div className="basic-list"><fieldset className="identity-field"><legend><span>01</span>ハンドルネーム</legend><div className="identity-controls"><div><label htmlFor="handle-name">定義書に載せる名前</label><input id="handle-name" type="text" maxLength={30} disabled={state.basics.anonymous} value={state.basics.handleName} placeholder="例：ななふし" onChange={e=>setState(s=>({...s,basics:{...s.basics,handleName:e.target.value}}))}/><small>本名でなくて構いません。「さん」は自動で付きます。</small></div><label className="anonymous-toggle"><input type="checkbox" checked={state.basics.anonymous} onChange={e=>setState(s=>({...s,basics:{...s.basics,anonymous:e.target.checked}}))}/><span>匿名で作成する</span></label></div></fieldset>{(Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";return <fieldset key={key}><legend><span>{String(idx+2).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
       <Nav next={()=>setState(s=>({...s,step:"wishes"}))} disabled={!canBasics} />
     </section>}
 
@@ -341,8 +342,9 @@ function mergeAnswers(answers:Answer[]):Answer {
   return {selected,priorities,ranking,scores,notes};
 }
 function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer;mode:Mode;diffs:DiffView[];onBack:()=>void}) {
-  return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOME PLANNING BRIEF</small><h1>家づくり<br/>カルテ</h1></div><div className="doc-mark">家づくり<br/><span>カルテ</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
-    <section><h2><b className="section-tag">基本情報</b> プロジェクト概要</h2><div className="facts">{(Object.keys(basics) as (keyof Basics)[]).map(k=><div key={k}><small>{BASIC_LABELS[k]}</small><b>{basics[k]}</b></div>)}</div></section>
+  const ownerName=basics.anonymous?"匿名":(basics.handleName.trim().replace(/さん$/,"")||"匿名");
+  return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOME PLANNING BRIEF</small><h1><span className="owner-name">{ownerName}さんの</span><br/>家づくりカルテ</h1></div><div className="doc-mark">家づくり<br/><span>カルテ</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
+    <section><h2><b className="section-tag">基本情報</b> プロジェクト概要</h2><div className="facts">{(Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).map(k=><div key={k}><small>{BASIC_LABELS[k]}</small><b>{basics[k]}</b></div>)}</div></section>
     <LayerRequirementSection number="ライフスタイル・性能" layer="policy" answer={answer} />
     <LayoutSection number="間取り" answer={answer} />
     <SpecSection number="設備・仕様" answer={answer} />
