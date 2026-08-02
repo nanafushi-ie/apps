@@ -92,3 +92,9 @@
   .appendix{break-before:auto}.appendix>p,.appendix>div{font-size:7pt}.appendix>div{padding:1.5mm 0}
   .document footer{margin-top:5mm;padding-top:2.5mm;font-size:6.5pt}
 }
+
+.stage-step{min-height:94px;align-items:flex-start}.stage-step>span{padding-top:3px}.stage-step>div{display:flex;flex-direction:column;gap:6px}.stage-step small{font-size:11px!important;line-height:1.55;color:var(--muted);letter-spacing:0}.stage-step.active small{color:#536159}.category-position{margin-top:20px}
+@media(max-width:800px){.stage-step{min-height:132px;justify-content:flex-start;align-items:center}.stage-step>span{padding-top:0}.stage-step>div{align-items:center}.stage-step small{font-size:10px!important;line-height:1.45;text-align:center}}
+
+.compare-screen{position:relative}.rank-back{position:absolute;top:28px;left:4vw;background:var(--card);min-height:42px;padding:0 18px;font-size:12px}
+@media(max-width:800px){.compare-screen{padding-top:96px}.rank-back{top:22px;left:24px}}
