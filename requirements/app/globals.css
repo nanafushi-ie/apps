@@ -53,3 +53,42 @@
 
 .welcome .welcome-copy>.hero-kicker{margin-top:72px!important}
 @media(max-width:800px){.welcome .welcome-copy>.hero-kicker{margin-top:0!important}}
+
+/* Keep the compact header lockup on one horizontal line. */
+.brand .brand-lockup{display:inline-flex;align-items:center}.brand .brand-icon{display:block}.brand .brand-words{display:flex;flex-direction:column}.brand .brand-words b,.brand .brand-words small{display:block}.mode{min-height:108px}.mode b{margin:0 0 7px}
+@media(max-width:800px){.brand .brand-lockup,.brand .brand-icon,.brand .brand-words,.brand .brand-words b{display:flex}.brand .brand-icon{display:block}.brand .brand-words small{display:none}}
+
+.spec-row p{margin:2px 0 0;font-size:11px;line-height:1.55;color:var(--muted)}
+
+/* The web document stays spacious; printing uses a denser A4 layout. */
+@media print{
+  @page{size:A4;margin:8mm}
+  body{background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .document-wrap{padding:0;background:white}
+  .document{max-width:none;padding:0;box-shadow:none}
+  .document>header{padding-bottom:4mm}
+  .document header h1{font-size:21pt;line-height:1.15;margin:3mm 0 0}
+  .document header small{font-size:6.5pt}
+  .doc-mark{font-size:10pt}.doc-mark span{font-size:15pt}
+  .doc-intro{max-width:none;margin:3mm 0 5mm;font-size:7.5pt;line-height:1.5}
+  .document section{break-inside:auto;margin:5mm 0}
+  .document section>h2{margin:0 0 2mm;padding-bottom:2mm;font-size:10pt}
+  .section-tag{font-size:7pt!important;padding:1.2mm 2mm;margin-right:2mm!important}
+  .facts{grid-template-columns:repeat(5,1fr)}
+  .facts div{padding:2mm}
+  .facts small{font-size:6pt;margin-bottom:1mm}.facts b{font-size:7.5pt}
+  .layer-description{margin:1.5mm 0 3mm;font-size:7pt;line-height:1.45}
+  .priority-block{margin:3mm 0}.priority-block>h3{margin:0 0 1mm;font-size:7pt}
+  .requirements li{grid-template-columns:24mm minmax(0,1fr);gap:3mm;padding:2.3mm 0;break-inside:avoid}
+  .requirements .stars{min-width:0;padding-top:1.5mm;font-size:10pt;letter-spacing:0}
+  .requirements small{font-size:6pt}.requirements h3{font-size:8.5pt;margin:.5mm 0}.requirements p{font-size:7pt;line-height:1.35}
+  .spec-rooms{grid-template-columns:repeat(2,minmax(0,1fr));gap:3mm}
+  .spec-room{padding:2.5mm;break-inside:avoid}
+  .spec-room>h3{margin:0 0 1mm;padding-bottom:1.5mm;font-size:8.5pt}
+  .spec-row{gap:2mm;padding:1.8mm 2mm}
+  .spec-row small{font-size:5.5pt}.spec-row b{font-size:7.5pt}.spec-row p{font-size:6.5pt;line-height:1.35;margin:.5mm 0 0}
+  .priority-badge{min-width:14mm;padding:1.2mm 1.5mm;font-size:6.5pt}
+  .document-note{margin-top:3mm;padding:2.5mm 3mm}.document-note small{font-size:6pt}.document-note p{font-size:7pt;line-height:1.4}
+  .appendix{break-before:auto}.appendix>p,.appendix>div{font-size:7pt}.appendix>div{padding:1.5mm 0}
+  .document footer{margin-top:5mm;padding-top:2.5mm;font-size:6.5pt}
+}
