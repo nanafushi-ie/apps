@@ -285,7 +285,7 @@ export default function Home() {
     </section>}
 
     {state.step==="basics" && <section className="screen narrow"><StepHead number="01" title="わが家の前提を教えてください" text="近いものをひとつずつ選びます。あとから変更できます。" />
-      <div className="basic-list">{(Object.keys(BASIC_OPTIONS) as (keyof Basics)[]).map((key,idx)=><fieldset key={key}><legend><span>{String(idx+1).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div></fieldset>)}</div>
+      <div className="basic-list">{(Object.keys(BASIC_OPTIONS) as (keyof Basics)[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";return <fieldset key={key}><legend><span>{String(idx+1).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
       <Nav next={()=>setState(s=>({...s,step:"wishes"}))} disabled={!canBasics} />
     </section>}
 
