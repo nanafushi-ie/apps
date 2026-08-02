@@ -7,7 +7,9 @@ type Mode = "solo" | "pair";
 type Layer = "policy" | "layout" | "spec";
 type Step = "welcome" | "basics" | "wishes" | "classify" | "rank" | "handoff" | "diff" | "document";
 type Item = { id: string; category: string; label: string; description: string; rationale: string; type: "single" | "multi" };
-type Answer = { selected: string[]; priorities: Record<string, Priority>; ranking: string[] };
+type DiffView = Omit<Item,"type"> & { selectionType:Item["type"]; diffType:"match"|"gap"|"one"|"conflict"; as:boolean; bs:boolean };
+type Help = { summary:string; effect:string; check:string };
+type Answer = { selected: string[]; priorities: Record<string, Priority>; ranking: string[]; scores: Record<string,number>; notes: Partial<Record<Layer,string>> };
 type Basics = { family: string; children: string; floor: string; budget: string; lot: string };
 
 const ITEMS: Item[] = [
@@ -111,6 +113,15 @@ const ITEMS: Item[] = [
   { id:"floor-veneer", category:"床材", label:"挽板フローリング", description:"木の質感と寸法安定性を両立", rationale:"天然木の質感と扱いやすさの両立を重視", type:"single" },
   { id:"floor-composite", category:"床材", label:"複合フローリング", description:"手入れのしやすさと費用を重視", rationale:"手入れのしやすさと導入費用のバランスを重視", type:"single" },
   { id:"floor-tile", category:"床材", label:"フロアタイル", description:"耐水性・耐久性と意匠性を重視", rationale:"水や傷への強さと意匠性を重視", type:"single" },
+  { id:"window-double", category:"窓仕様", label:"複層ガラス", description:"2枚のガラスで窓の断熱性を高める", rationale:"窓からの熱の出入りと結露を抑えることを重視", type:"multi" },
+  { id:"window-low-e", category:"窓仕様", label:"Low-E複層ガラス", description:"特殊金属膜で断熱・遮熱性能を高める", rationale:"季節に応じた断熱・遮熱性能を高めることを重視", type:"multi" },
+  { id:"resin-sash", category:"窓仕様", label:"樹脂サッシ", description:"窓枠からの熱損失と結露を抑える", rationale:"サッシ部分の断熱性と結露対策を重視", type:"multi" },
+  { id:"ih-cooking", category:"キッチン設備", label:"IHクッキングヒーター", description:"清掃性と火を使わない調理環境", rationale:"調理台の清掃性と火を使わない安心感を重視", type:"multi" },
+  { id:"bath-dryer", category:"浴室設備", label:"浴室暖房乾燥機", description:"入浴前の暖房と浴室での衣類乾燥", rationale:"冬の入浴時の温度差対策と衣類乾燥を重視", type:"multi" },
+  { id:"smart-lock", category:"玄関設備", label:"スマートキー・電気錠", description:"鍵を取り出さず施解錠する", rationale:"荷物を持った状態でも円滑に施解錠できることを重視", type:"multi" },
+  { id:"high-eff-water", category:"給湯設備", label:"高効率給湯器", description:"エコキュートなどで給湯エネルギーを削減", rationale:"給湯にかかるエネルギーと光熱費を抑えることを重視", type:"multi" },
+  { id:"maintenance-free-wall", category:"外装仕様", label:"高耐久・低メンテナンス外壁", description:"塗り替えや補修の頻度を抑える", rationale:"外壁の維持管理にかかる手間と費用を抑えることを重視", type:"multi" },
+  { id:"tankless-toilet", category:"トイレ設備", label:"タンクレストイレ", description:"省スペースで清掃しやすい便器", rationale:"トイレ空間の清掃性とすっきりした見た目を重視", type:"multi" },
 ];
 
 const LAYERS: { id:Layer; label:string; shortLabel:string; description:string }[] = [
@@ -118,7 +129,39 @@ const LAYERS: { id:Layer; label:string; shortLabel:string; description:string }[
   { id:"layout", label:"間取り", shortLabel:"間取り", description:"部屋の構成、広さ、配置、収納や家事動線" },
   { id:"spec", label:"仕様や設備", shortLabel:"仕様・設備", description:"間取りへの影響が比較的小さい機器、素材、仕上げ" },
 ];
-const SPEC_IDS = new Set(["dishwasher","all-electric","solar","delivery-box","drying-machine","floor-heating","battery","ev","smart-home","outlet-plan","wired-lan","stockpile","security-window","camera","outdoor-water","natural-material","easy-clean","neutral-design","accent-material","indirect-light","daylight-color","floor-solid","floor-veneer","floor-composite","floor-tile"]);
+const HELP:Record<string,Help> = {
+  "living-stairs":{summary:"リビングの中に階段を設け、2階へ行くときにリビングを通る間取りです。",effect:"家族が顔を合わせやすい一方、音や冷暖房の空気が上下階へ伝わりやすくなります。",check:"階段入口の位置、空調計画、来客時の動線を確認します。"},
+  "atrium":{summary:"上下の階の床を一部設けず、縦方向につながった大きな空間をつくることです。",effect:"明るさと開放感が得やすい一方、2階の床面積や空調効率との調整が必要です。",check:"窓の掃除方法、音の伝わり方、冷暖房計画を確認します。"},
+  "high-ceiling":{summary:"屋根の傾きに合わせた天井や、一般的な天井より高い天井です。",effect:"床面積を増やさず開放感を出せますが、照明交換や空調に配慮が必要です。",check:"最も高い位置、照明の交換方法、シーリングファンの要否を確認します。"},
+  "tatami":{summary:"床を一段高くした畳スペースです。段差部分を収納にする場合もあります。",effect:"腰掛けや昼寝に便利ですが、段差につまずく可能性があります。",check:"段差の高さ、収納の有無、将来の安全性を確認します。"},
+  "walkthrough-closet":{summary:"入口と出口があり、通り抜けながら物を出し入れできる収納です。",effect:"動線を短くできますが、通路の分だけ収納できる壁面が減ります。",check:"通路幅と、収納量を優先するか移動の便利さを優先するかを確認します。"},
+  "performance-high":{summary:"隙間を少なくし、壁・窓などから熱が逃げにくい家を優先する考え方です。",effect:"室温が安定しやすくなりますが、施工精度と適切な換気計画が重要です。",check:"断熱性能のUA値、気密性能のC値、測定の有無を施工会社へ確認します。"},
+  "one-ac":{summary:"少ない台数のエアコンで、複数の部屋や家全体を冷暖房する計画です。",effect:"機器を減らせますが、断熱・気密・間取り・空気の経路を一体で設計する必要があります。",check:"設計者に温熱計算と、故障時の代替方法を確認します。"},
+  "passive-solar":{summary:"冬の日差しを室内へ取り込み、夏は庇などで遮る設計手法です。",effect:"設備だけに頼らず快適性を高められますが、敷地の日当たりに左右されます。",check:"季節ご日射シミュレーションと、夏の西日対策を確認します。"},
+  "ventilation":{summary:"給気口から外気を入れ、排気口から汚れた空気を出す経路を計画することです。",effect:"空気のよどみを防ぎます。フィルター清掃などの維持管理も必要です。",check:"給排気口の位置、フィルター交換費用、掃除のしやすさを確認します。"},
+  "seismic":{summary:"建築基準法で求める耐震性より高い、住宅性能表示制度の最高等級です。",effect:"大地震への備えを高めますが、間取りの自由度や費用と調整する場合があります。",check:"許容応力度計算などの計算方法と、正式な評価書取得の有無を確認します。"},
+  "all-electric":{summary:"コンロ・給湯・暖房などの主なエネルギーを電気に統一する住宅です。",effect:"ガス契約をなくせますが、停電時の備えや電気料金プランの検討が必要です。",check:"給湯器の種類、停電時に使える設備、契約容量を確認します。"},
+  "solar":{summary:"屋根などのパネルで発電し、家庭で使ったり余った電気を売ったりする設備です。",effect:"購入電力を減らせますが、屋根条件・初期費用・将来の機器交換を考慮します。",check:"発電予測、保証、パワーコンディショナーの交換費用を確認します。"},
+  "battery":{summary:"電気をためて、夜間や停電時に使える家庭用の蓄電設備です。",effect:"太陽光の自家消費や停電対策に役立ちますが、容量と交換費用の検討が必要です。",check:"停電時に使える回路、実際に使える容量、保証年数を確認します。"},
+  "floor-heating":{summary:"床の下から部屋を暖める設備です。温水式と電気式があります。",effect:"足元が暖かく風が少ない一方、設置費用や修理方法を確認する必要があります。",check:"熱源、設置範囲、床材の制限、故障時の修理方法を確認します。"},
+  "smart-home":{summary:"照明・空調・鍵などをスマートフォンや音声でまとめて操作する仕組みです。",effect:"自動化や遠隔操作ができますが、機器同士の互換性やサービス終了リスクがあります。",check:"対応規格、インターネット停止時の操作、手動操作の可否を確認します。"},
+  "wired-lan":{summary:"Wi-Fiだけでなく、壁の中に通した通信ケーブルで各部屋を接続する設備です。",effect:"仕事や動画視聴の通信が安定しやすくなります。",check:"配線規格、情報分電盤の位置、将来ケーブルを交換できる配管を確認します。"},
+  "dishwasher":{summary:"キッチンに組み込み、食器の洗浄から乾燥まで行う設備です。",effect:"家事時間を減らせますが、容量・扉の開き方・食器の入れ方が製品で異なります。",check:"家族人数に合う容量、フロントオープンか引き出しか、交換寸法を確認します。"},
+  "drying-machine":{summary:"ガスの強い温風で衣類を短時間に乾かす機器です。",effect:"乾燥時間を短縮できますが、ガス配管と湿気を外へ出す工事が必要です。",check:"設置高さ、専用台、排湿管、衣類を出し入れする動線を確認します。"},
+  "window-double":{summary:"2枚のガラスの間に空気層を設けた窓ガラスです。ペアガラスとも呼ばれます。",effect:"1枚ガラスより熱が伝わりにくく、結露を抑えやすくなります。",check:"ガラスだけでなく、窓枠（サッシ）の材質も合わせて確認します。"},
+  "window-low-e":{summary:"複層ガラスの内側に薄い金属膜を付け、熱の出入りをさらに抑えたガラスです。",effect:"断熱型と遮熱型があり、窓の方角によって適した種類が異なります。",check:"方角ごとのガラス種、日射を取り込みたい窓と遮りたい窓を確認します。"},
+  "resin-sash":{summary:"窓枠の主な部分を、熱を伝えにくい樹脂でつくったサッシです。",effect:"アルミ中心の窓枠より断熱性が高く、枠の結露を抑えやすくなります。",check:"ガラスとの組み合わせ、窓の大きさ、地域の気候に合う性能を確認します。"},
+  "high-eff-water":{summary:"少ないエネルギーでお湯をつくる給湯器です。エコキュートなどが該当します。",effect:"光熱費を抑えやすい一方、機器やタンクの設置場所が必要です。",check:"家族に合う容量、運転音、設置場所、非常時に使える水量を確認します。"},
+  "ih-cooking":{summary:"磁力で鍋自体を発熱させる、電気式の調理機器です。",effect:"天板が平らで掃除しやすい一方、使える鍋や同時使用時の出力に制限があります。",check:"手持ちの鍋への対応、最大火力、停電時の代替調理方法を確認します。"},
+  "bath-dryer":{summary:"浴室の天井などに設置し、暖房・換気・衣類乾燥を行う設備です。",effect:"冬の入浴前暖房や雨天時の乾燥に使えますが、乾燥時間と電気・ガス代を確認します。",check:"熱源、物干し位置、フィルター掃除のしやすさを確認します。"},
+  "smart-lock":{summary:"ボタン、カード、スマートフォンなどで玄関ドアを施解錠する電気式の鍵です。",effect:"鍵を取り出す手間が減りますが、電池切れや締め出しへの備えが必要です。",check:"非常用の物理鍵、電池交換通知、オートロック設定を確認します。"},
+  "tankless-toilet":{summary:"便器の後ろに大きな貯水タンクがないトイレです。",effect:"空間がすっきりし掃除しやすい一方、別の手洗いや停電時の流し方を検討します。",check:"水圧条件、手洗い器の要否、停電・断水時の使用方法を確認します。"},
+  "floor-solid":{summary:"一枚の天然木からつくった床材です。",effect:"足触りと経年変化が魅力ですが、傷・水分・乾燥による隙間や反りが生じることがあります。",check:"樹種、塗装、床暖房対応、日常の手入れ方法を確認します。"},
+  "floor-veneer":{summary:"合板などの基材の表面に、比較的厚く切った天然木を貼った床材です。",effect:"天然木の質感を楽しみつつ、無垢床より寸法が安定しやすい床材です。",check:"表面材の厚さ、樹種、再研磨の可否、床暖房対応を確認します。"},
+  "floor-composite":{summary:"合板などの基材に、薄い天然木や化粧シートを貼った一般的な床材です。",effect:"品質が安定し、傷や汚れに強い製品を選びやすいのが特徴です。",check:"表面が天然木かシートか、耐水・耐傷性能、補修方法を確認します。"},
+  "floor-tile":{summary:"石や木の柄を印刷した、薄い塩化ビニル系の床材です。",effect:"水や傷に強く意匠を選びやすい一方、硬さや冷たさを感じる場合があります。",check:"使う部屋、床暖房対応、目地の見え方、下地の平滑さを確認します。"},
+};
+const SPEC_IDS = new Set(["dishwasher","all-electric","solar","delivery-box","drying-machine","floor-heating","battery","ev","smart-home","outlet-plan","wired-lan","stockpile","security-window","camera","outdoor-water","natural-material","easy-clean","neutral-design","accent-material","indirect-light","daylight-color","floor-solid","floor-veneer","floor-composite","floor-tile","window-double","window-low-e","resin-sash","ih-cooking","bath-dryer","smart-lock","high-eff-water","maintenance-free-wall","tankless-toilet"]);
 const POLICY_CATEGORIES = new Set(["ライフスタイル","性能方針","将来・可変性"]);
 const POLICY_IDS = new Set(["one-ac","passive-solar","ventilation","soundproof","seismic","flood"]);
 const getLayer = (target:Item):Layer => SPEC_IDS.has(target.id) || target.category==="床材" ? "spec" : POLICY_CATEGORIES.has(target.category) || POLICY_IDS.has(target.id) ? "policy" : "layout";
@@ -126,13 +169,14 @@ const CATEGORY_STEPS = LAYERS.flatMap(layer => [...new Set(ITEMS.filter(i => get
 const CATEGORIES = CATEGORY_STEPS.map(step => step.key);
 const SPEC_ROOMS = ["家全体","玄関・外構","LDK・キッチン","洗面・ランドリー","浴室・トイレ","個室","内装・床材"];
 const getSpecRoom = (target:Item) => {
-  if(["delivery-box","camera","security-window","outdoor-water"].includes(target.id)) return "玄関・外構";
-  if(["dishwasher","all-electric"].includes(target.id)) return "LDK・キッチン";
+  if(["delivery-box","camera","security-window","outdoor-water","smart-lock","maintenance-free-wall"].includes(target.id)) return "玄関・外構";
+  if(["dishwasher","all-electric","ih-cooking"].includes(target.id)) return "LDK・キッチン";
   if(["drying-machine"].includes(target.id)) return "洗面・ランドリー";
+  if(["bath-dryer","tankless-toilet"].includes(target.id)) return "浴室・トイレ";
   if(["floor-solid","floor-veneer","floor-composite","floor-tile","natural-material","easy-clean","neutral-design","accent-material","indirect-light","daylight-color"].includes(target.id)) return "内装・床材";
   return "家全体";
 };
-const EMPTY_ANSWER: Answer = { selected: [], priorities: {}, ranking: [] };
+const EMPTY_ANSWER: Answer = { selected: [], priorities: {}, ranking: [], scores:{}, notes:{} };
 const EMPTY_BASICS: Basics = { family:"", children:"", floor:"", budget:"", lot:"" };
 const BASIC_OPTIONS = {
   family:["1人","2人","3人","4人","5人以上"], children:["子どもなし","未就学児","小学生","中高生","成人した子"],
@@ -148,11 +192,18 @@ export default function Home() {
   const [ready,setReady] = useState(false);
   const [state,setState] = useState(initialState);
   const [category,setCategory] = useState(CATEGORIES[0]);
+  const [helpItemId,setHelpItemId] = useState<string|null>(null);
   const [sortState,setSortState] = useState<{sorted:string[]; pending:string[]; current:string; low:number; high:number; layerIndex:number; completed:string[]}|null>(null);
   const answer = state.answers[state.respondent];
 
   useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { setState(JSON.parse(saved)); } catch {} setReady(true); },[]);
   useEffect(() => { if(ready) localStorage.setItem("ie-requirements-v1",JSON.stringify(state)); },[state,ready]);
+  useEffect(() => {
+    if(!helpItemId) return;
+    const close=(event:KeyboardEvent)=>{ if(event.key==="Escape") setHelpItemId(null); };
+    document.addEventListener("keydown",close); document.body.style.overflow="hidden";
+    return ()=>{ document.removeEventListener("keydown",close); document.body.style.overflow=""; };
+  },[helpItemId]);
   const patchAnswer = (next:Answer) => setState(s => ({...s,answers:s.answers.map((a,i)=>i===s.respondent?next:a)}));
   const progress = ({welcome:0,basics:12,wishes:32,classify:55,rank:75,handoff:78,diff:90,document:100}[state.step]);
   const canBasics = Object.values(state.basics).every(Boolean);
@@ -160,13 +211,15 @@ export default function Home() {
   const isLastCategory = categoryIndex === CATEGORIES.length - 1;
   const categoryStep = CATEGORY_STEPS[categoryIndex] ?? CATEGORY_STEPS[0];
   const currentLayer = LAYERS.find(layer => layer.id===categoryStep.layer)!;
+  const isLastInLayer = categoryIndex===CATEGORIES.length-1 || CATEGORY_STEPS[categoryIndex+1].layer!==categoryStep.layer;
 
   function toggle(id:string) {
     const target=item(id); let selected=[...answer.selected];
     if(selected.includes(id)) selected=selected.filter(x=>x!==id);
     else { if(target.type==="single") selected=selected.filter(x=>item(x).category!==target.category); selected.push(id); }
     const priorities={...answer.priorities}; selected.forEach(x=>priorities[x]??="should");
-    patchAnswer({...answer,selected,priorities,ranking:[]});
+    const scores={...(answer.scores??{})}; selected.forEach(x=>scores[x]??=priorities[x]==="must"?5:3);
+    patchAnswer({...answer,selected,priorities,scores,notes:answer.notes??{},ranking:[]});
   }
   function startRanking() {
     setState(s=>({...s,step:"rank"}));
@@ -176,6 +229,10 @@ export default function Home() {
     if(layerIndex>=LAYERS.length){ patchAnswer({...answer,ranking:completed}); setSortState(null); finishRespondent(completed); return; }
     const ids=answer.selected.filter(id=>getLayer(item(id))===LAYERS[layerIndex].id);
     if(ids.length===0){ advanceLayerRanking(layerIndex+1,completed); return; }
+    if(LAYERS[layerIndex].id!=="policy"){
+      const ordered=[...ids].sort((a,b)=>((answer.scores??{})[b]??3)-((answer.scores??{})[a]??3));
+      advanceLayerRanking(layerIndex+1,[...completed,...ordered]); return;
+    }
     if(ids.length===1){ advanceLayerRanking(layerIndex+1,[...completed,ids[0]]); return; }
     setSortState({sorted:[ids[0]],pending:ids.slice(2),current:ids[1],low:0,high:1,layerIndex,completed});
   }
@@ -204,9 +261,10 @@ export default function Home() {
     const a=state.answers[0],b=state.answers[1],as=a.selected.includes(it.id),bs=b.selected.includes(it.id);
     let type:"match"|"gap"|"one"|"conflict"="match";
     if(it.type==="single") { const ac=a.selected.find(x=>item(x).category===it.category),bc=b.selected.find(x=>item(x).category===it.category); if(ac&&bc&&ac!==bc) type="conflict"; else if(as!==bs) type="one"; }
-    else if(as!==bs) type="one"; else if(as&&bs && (a.priorities[it.id]!==b.priorities[it.id] || Math.abs(a.ranking.indexOf(it.id)-b.ranking.indexOf(it.id))>3)) type="gap";
-    return {...it,type,as,bs};
-  }).filter(d=>d.as||d.bs).sort((a,b)=>({conflict:0,gap:1,one:2,match:3}[a.type]-{conflict:0,gap:1,one:2,match:3}[b.type])),[state.answers]);
+    else if(as!==bs) type="one"; else if(as&&bs && (a.priorities[it.id]!==b.priorities[it.id] || (getLayer(it)==="policy"?Math.abs(a.ranking.indexOf(it.id)-b.ranking.indexOf(it.id))>3:Math.abs(fivePointScore(a,it.id)-fivePointScore(b,it.id))>=2))) type="gap";
+    const {type:selectionType,...base}=it;
+    return {...base,selectionType,diffType:type,as,bs} as DiffView;
+  }).filter(d=>d.as||d.bs).sort((a,b)=>({conflict:0,gap:1,one:2,match:3}[a.diffType]-{conflict:0,gap:1,one:2,match:3}[b.diffType])),[state.answers]);
 
   if(!ready) return <main className="loading">要件を整理する準備をしています…</main>;
   return <main className="app">
@@ -228,13 +286,14 @@ export default function Home() {
       <div className={`layer-banner ${currentLayer.id}`}><small>レイヤー {LAYERS.findIndex(l=>l.id===currentLayer.id)+1}</small><b>{currentLayer.label}</b><span>{currentLayer.description}</span></div>
       <div className="category-position"><span>{categoryStep.category}</span><b>{categoryIndex + 1} / {CATEGORIES.length}</b></div>
       <div className="category-tabs">{CATEGORY_STEPS.map((step,index)=><button key={step.key} disabled={index>categoryIndex} className={category===step.key?"active":""} onClick={()=>moveCategory(index)}>{step.category}<small>{answer.selected.filter(id=>item(id).category===step.category&&getLayer(item(id))===step.layer).length||""}</small></button>)}</div>
-      <div className="wish-grid">{ITEMS.filter(i=>i.category===categoryStep.category&&getLayer(i)===categoryStep.layer).map(i=><button key={i.id} className={answer.selected.includes(i.id)?"wish selected":"wish"} onClick={()=>toggle(i.id)}><span className="check">{answer.selected.includes(i.id)?"✓":"＋"}</span><b>{i.label}</b><small>{i.description}</small>{i.type==="single"&&<i>ひとつだけ選択</i>}</button>)}</div>
+      <div className="wish-grid">{ITEMS.filter(i=>i.category===categoryStep.category&&getLayer(i)===categoryStep.layer).map(i=><div key={i.id} className={answer.selected.includes(i.id)?"wish selected":"wish"}><button className="wish-select" onClick={()=>toggle(i.id)}><span className="check">{answer.selected.includes(i.id)?"✓":"＋"}</span><b>{i.label}</b><small>{i.description}</small>{i.type==="single"&&<i>ひとつだけ選択</i>}</button>{HELP[i.id]&&<button className="info-button" aria-label={`${i.label}の説明を見る`} onClick={()=>setHelpItemId(i.id)}>i</button>}</div>)}</div>
+      {isLastInLayer&&<div className="layer-note"><label htmlFor={`note-${currentLayer.id}`}>{currentLayer.label}について、選択肢にない希望</label><p>任意です。なければ空欄のまま進めます。</p><textarea id={`note-${currentLayer.id}`} value={(answer.notes??{})[currentLayer.id]??""} onChange={e=>patchAnswer({...answer,notes:{...(answer.notes??{}),[currentLayer.id]:e.target.value},scores:answer.scores??{}})} placeholder="例：休日は家族で料理を楽しめるようにしたい" rows={3}/></div>}
       <div className="selection-count"><b>{answer.selected.length}</b>件を選択中</div><Nav back={()=>categoryIndex===0?setState(s=>({...s,step:"basics"})):moveCategory(categoryIndex-1)} next={()=>isLastCategory?setState(s=>({...s,step:"classify"})):moveCategory(categoryIndex+1)} disabled={isLastCategory&&answer.selected.length===0} label={isLastCategory?"仕分けへ進む":"次の項目へ進む"} />
     </section>}
 
-    {state.step==="classify" && <section className="screen narrow"><StepHead number="03" title="絶対条件を決めましょう" text="初期値は「できれば」です。譲れないものだけをMustに変えます。" />
-      <div className="classify-list">{LAYERS.flatMap(layer=>answer.selected.filter(id=>getLayer(item(id))===layer.id).map(id=><div className="classify-row" key={id}><div><small>{layer.label} ｜ {item(id).category}</small><b>{item(id).label}</b></div><div className="segmented"><button className={answer.priorities[id]!=="must"?"active":""} onClick={()=>patchAnswer({...answer,priorities:{...answer.priorities,[id]:"should"}})}>できれば</button><button className={answer.priorities[id]==="must"?"must active":"must"} onClick={()=>patchAnswer({...answer,priorities:{...answer.priorities,[id]:"must"}})}>絶対条件</button></div></div>))}</div>
-      <Nav back={()=>setState(s=>({...s,step:"wishes"}))} next={startRanking} label="優先順位を決める" />
+    {state.step==="classify" && <section className="screen narrow"><StepHead number="03" title="絶対条件と優先度を決めましょう" text="譲れないものをMustにします。間取りと仕様設備は、比較質問の代わりに1〜5で評価します。" />
+      <div className="classify-list">{LAYERS.flatMap(layer=>answer.selected.filter(id=>getLayer(item(id))===layer.id).map(id=><div className="classify-row" key={id}><div><small>{layer.label} ｜ {item(id).category}</small><b>{item(id).label}</b></div><div className="classify-controls"><div className="segmented"><button className={answer.priorities[id]!=="must"?"active":""} onClick={()=>patchAnswer({...answer,priorities:{...answer.priorities,[id]:"should"},scores:answer.scores??{},notes:answer.notes??{}})}>できれば</button><button className={answer.priorities[id]==="must"?"must active":"must"} onClick={()=>patchAnswer({...answer,priorities:{...answer.priorities,[id]:"must"},scores:answer.scores??{},notes:answer.notes??{}})}>絶対条件</button></div>{layer.id!=="policy"&&<div className="score-picker"><span>優先度</span>{[1,2,3,4,5].map(score=><button key={score} aria-label={`優先度${score}`} className={((answer.scores??{})[id]??3)===score?"active":""} onClick={()=>patchAnswer({...answer,scores:{...(answer.scores??{}),[id]:score},notes:answer.notes??{}})}>{score}</button>)}</div>}</div></div>))}</div>
+      <Nav back={()=>setState(s=>({...s,step:"wishes"}))} next={startRanking} label="方針の優先順位を決める" />
     </section>}
 
     {state.step==="rank" && sortState?.current && <section className="compare-screen"><div className="compare-top"><span>04</span><div><small>レイヤー {sortState.layerIndex+1}｜{LAYERS[sortState.layerIndex].label}</small><b>このレイヤー内で比較中</b></div></div><h2>どちらを、より優先しますか？</h2><p>異なるレイヤーとは比べません。同じレイヤーの中で、どちらを残したいか選んでください。</p><div className="compare-grid"><CompareCard data={item(sortState.current)} priority={answer.priorities[sortState.current]} onClick={()=>compare(true)} /><div className="or">OR</div><CompareCard data={item(sortState.sorted[Math.floor((sortState.low+sortState.high)/2)])} priority={answer.priorities[sortState.sorted[Math.floor((sortState.low+sortState.high)/2)]]} onClick={()=>compare(false)} /></div></section>}
@@ -242,47 +301,61 @@ export default function Home() {
     {state.step==="handoff" && <section className="handoff"><div className="handoff-icon">↗</div><p className="eyebrow">1人目の回答を保存しました</p><h2>端末を2人目へ<br/>渡してください</h2><p>1人目の回答は表示しません。お互いの意見に引っ張られず、同じ質問へ回答できます。</p><button className="primary large" onClick={()=>{setState(s=>({...s,respondent:1,step:"wishes"}));setCategory(CATEGORIES[0]);}}>2人目の回答をはじめる →</button></section>}
 
     {state.step==="diff" && <section className="screen"><StepHead number="05" title="ふたりの違いが見つかりました" text="赤と黄色から話し合うと、大切な論点を見落としません。" />
-      <div className="diff-summary">{[["conflict","直接対立"],["gap","温度差"],["one","片方のみ"],["match","一致"]].map(([k,l])=><div className={k} key={k}><b>{diffs.filter(d=>d.type===k).length}</b><span>{l}</span></div>)}</div>
+      <div className="diff-summary">{[["conflict","直接対立"],["gap","温度差"],["one","片方のみ"],["match","一致"]].map(([k,l])=><div className={k} key={k}><b>{diffs.filter(d=>d.diffType===k).length}</b><span>{l}</span></div>)}</div>
       <div className="legend"><i className="conflict"/>直接対立 <i className="gap"/>温度差 <i className="one"/>片方のみ <i className="match"/>一致</div>
-      <div className="diff-list">{diffs.map(d=><div className={`diff-row ${d.type}`} key={d.id}><div className="diff-title"><small>{d.category}</small><b>{d.label}</b></div><PersonAnswer label="1人目" answer={state.answers[0]} id={d.id}/><PersonAnswer label="2人目" answer={state.answers[1]} id={d.id}/><strong>{({conflict:"直接対立",gap:"温度差",one:"片方のみ",match:"一致"} as const)[d.type]}</strong></div>)}</div>
+      <div className="diff-list">{diffs.map(d=><div className={`diff-row ${d.diffType}`} key={d.id}><div className="diff-title"><small>{d.category}</small><b>{d.label}</b></div><PersonAnswer label="1人目" answer={state.answers[0]} id={d.id}/><PersonAnswer label="2人目" answer={state.answers[1]} id={d.id}/><strong>{({conflict:"直接対立",gap:"温度差",one:"片方のみ",match:"一致"} as const)[d.diffType]}</strong></div>)}</div>
       <Nav next={()=>setState(s=>({...s,step:"document"}))} label="統合版を見る" />
     </section>}
 
     {state.step==="document" && <Document basics={state.basics} answer={state.mode==="solo"?state.answers[0]:mergeAnswers(state.answers)} mode={state.mode} diffs={diffs} onBack={()=>setState(s=>({...s,step:state.mode==="pair"?"diff":"classify"}))} />}
+    {helpItemId&&HELP[helpItemId]&&<HelpModal target={item(helpItemId)} help={HELP[helpItemId]} close={()=>setHelpItemId(null)}/>}
   </main>;
 }
 
 function StepHead({number,title,text}:{number:string,title:string,text:string}) { return <div className="step-head"><span>{number}</span><div><h1>{title}</h1><p>{text}</p></div></div> }
 function Nav({back,next,disabled,label="次へ進む"}:{back?:()=>void;next:()=>void;disabled?:boolean;label?:string}) { return <div className="nav no-print">{back?<button className="secondary" onClick={back}>← 戻る</button>:<span/>}<button className="primary" disabled={disabled} onClick={next}>{label} →</button></div> }
 function CompareCard({data,priority,onClick}:{data:Item;priority:Priority;onClick:()=>void}) { return <button className="compare-card" onClick={onClick}><small>{data.category}</small><span className={priority}>{priority==="must"?"絶対条件":"できれば"}</span><b>{data.label}</b><p>{data.description}</p><i>こちらを優先 →</i></button> }
-function PersonAnswer({label,answer,id}:{label:string;answer:Answer;id:string}) { const selected=answer.selected.includes(id); const rank=answer.ranking.indexOf(id); return <div className="person-answer"><small>{label}</small><b>{selected?(answer.priorities[id]==="must"?"絶対条件":"できれば"):"選択なし"}</b>{selected&&rank>=0&&<span>優先度 {rank+1}位</span>}</div> }
+function HelpModal({target,help,close}:{target:Item;help:Help;close:()=>void}) { return <div className="help-overlay" role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)close()}}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title"><button className="help-close" onClick={close} aria-label="説明を閉じる">×</button><small>{target.category}｜用語の説明</small><h2 id="help-title">{target.label}</h2><p className="help-summary">{help.summary}</p><dl><div><dt>採用するとどうなる？</dt><dd>{help.effect}</dd></div><div><dt>何を確認すればいい？</dt><dd>{help.check}</dd></div></dl><button className="primary" onClick={close}>わかりました</button></section></div> }
+function PersonAnswer({label,answer,id}:{label:string;answer:Answer;id:string}) { const selected=answer.selected.includes(id); const rank=answer.ranking.indexOf(id); return <div className="person-answer"><small>{label}</small><b>{selected?(answer.priorities[id]==="must"?"絶対条件":"できれば"):"選択なし"}</b>{selected&&(getLayer(item(id))==="policy"?(rank>=0&&<span>優先度 {rank+1}位</span>):<span>優先度 {fivePointScore(answer,id)} / 5</span>)}</div> }
 function layerRanking(answer:Answer,layer:Layer) { const selected=answer.selected.filter(id=>getLayer(item(id))===layer); const ranked=answer.ranking.filter(id=>selected.includes(id)); return [...ranked,...selected.filter(id=>!ranked.includes(id))]; }
-function priorityScore(answer:Answer,id:string) { const ranked=layerRanking(answer,getLayer(item(id))); const index=ranked.indexOf(id); return index<0?0:Math.round(((ranked.length-index)/ranked.length)*100); }
+function fivePointScore(answer:Answer,id:string) {
+  if(getLayer(item(id))!=="policy") return (answer.scores??{})[id]??3;
+  const ranked=layerRanking(answer,"policy"); const index=ranked.indexOf(id);
+  return index<0?0:Math.max(1,5-Math.floor((index*5)/ranked.length));
+}
 function mergeAnswers(answers:Answer[]):Answer {
   const selected=[...new Set(answers.flatMap(a=>a.selected))];
-  const priorities=Object.fromEntries(selected.map(id=>[id,answers.some(a=>a.priorities[id]==="must")?"must":"should"]));
+  const priorities=Object.fromEntries(selected.map(id=>[id,answers.some(a=>a.priorities[id]==="must")?"must":"should"])) as Record<string,Priority>;
   const ranking=LAYERS.flatMap(layer=>{
     const ids=selected.filter(id=>getLayer(item(id))===layer.id);
-    const score=(id:string)=>answers.reduce((sum,a)=>sum+(a.selected.includes(id)?priorityScore(a,id):0),0);
+    const score=(id:string)=>answers.reduce((sum,a)=>sum+(a.selected.includes(id)?fivePointScore(a,id):0),0);
     return ids.sort((a,b)=>score(b)-score(a));
   });
-  return {selected,priorities,ranking} as Answer;
+  const scores=Object.fromEntries(selected.map(id=>[id,Math.round(answers.reduce((sum,a)=>sum+(a.selected.includes(id)?fivePointScore(a,id):0),0)/answers.filter(a=>a.selected.includes(id)).length)]));
+  const notes=Object.fromEntries(LAYERS.map(layer=>[layer.id,answers.map((a,index)=>(a.notes??{})[layer.id]?.trim()?`${index+1}人目：${(a.notes??{})[layer.id]}`:"").filter(Boolean).join("\n")])) as Partial<Record<Layer,string>>;
+  return {selected,priorities,ranking,scores,notes};
 }
-function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer;mode:Mode;diffs:(Item&{type:string;as:boolean;bs:boolean})[];onBack:()=>void}) {
+function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer;mode:Mode;diffs:DiffView[];onBack:()=>void}) {
   return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOUSE REQUIREMENTS / 01</small><h1>家づくり<br/>要件定義書</h1></div><div className="doc-mark">IE<br/><span>requirements</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
     <section><h2><b>01</b> プロジェクト概要</h2><div className="facts">{(Object.keys(basics) as (keyof Basics)[]).map(k=><div key={k}><small>{BASIC_LABELS[k]}</small><b>{basics[k]}</b></div>)}</div></section>
     <LayerRequirementSection number="02" layer="policy" answer={answer} />
-    <LayerRequirementSection number="03" layer="layout" answer={answer} />
+    <LayoutSection number="03" answer={answer} />
     <SpecSection number="04" answer={answer} />
     <section><h2><b>05</b> 設計・見積もり時の使い方</h2><div className="guidance"><p><b>01</b>上位の暮らし方・性能方針から確認する</p><p><b>02</b>その方針を満たす間取りを検討する</p><p><b>03</b>仕様設備は部屋別のスコアを見て予算調整する</p></div></section>
-    {mode==="pair"&&<section className="appendix"><h2><b>A</b> ふたりの回答差分</h2><p>統合前の回答で、話し合いが必要だった項目です。</p>{diffs.filter(d=>d.type!=="match").map(d=><div key={d.id}><b>{d.label}</b><span>{({conflict:"直接対立",gap:"温度差",one:"片方のみ"} as Record<string,string>)[d.type]}</span></div>)}</section>}
+    {mode==="pair"&&<section className="appendix"><h2><b>A</b> ふたりの回答差分</h2><p>統合前の回答で、話し合いが必要だった項目です。</p>{diffs.filter(d=>d.diffType!=="match").map(d=><div key={d.id}><b>{d.label}</b><span>{({conflict:"直接対立",gap:"温度差",one:"片方のみ"} as Record<string,string>)[d.diffType]}</span></div>)}</section>}
     <footer>作成日 {new Intl.DateTimeFormat("ja-JP",{dateStyle:"long"}).format(new Date())}<span>IE REQUIREMENTS</span></footer></article></section>
 }
 function LayerRequirementSection({number,layer,answer}:{number:string;layer:Layer;answer:Answer}) {
   const ranked=layerRanking(answer,layer); const definition=LAYERS.find(l=>l.id===layer)!;
-  return <section><h2><b>{number}</b> {definition.label}</h2><p className="layer-description">{definition.description}</p>{(["must","should"] as Priority[]).map(priority=>{const ids=ranked.filter(id=>answer.priorities[id]===priority);return <div className="priority-block" key={priority}><h3>{priority==="must"?"Must｜絶対条件":"Should｜できれば"}</h3>{ids.length?<ol className="requirements">{ids.map((id,idx)=><li key={id}><strong>{String(idx+1).padStart(2,"0")}</strong><div><small>{item(id).category}</small><h3>{item(id).label}</h3><p>{item(id).rationale}。</p></div></li>)}</ol>:<p className="empty">該当する項目はありません</p>}</div>})}</section>
+  return <section><h2><b>{number}</b> {definition.label}</h2><p className="layer-description">{definition.description}</p>{(["must","should"] as Priority[]).map(priority=>{const ids=ranked.filter(id=>answer.priorities[id]===priority);return <div className="priority-block" key={priority}><h3>{priority==="must"?"Must｜絶対条件":"Should｜できれば"}</h3>{ids.length?<ol className="requirements">{ids.map((id,idx)=><li key={id}><strong>{String(idx+1).padStart(2,"0")}</strong><div><small>{item(id).category}</small><h3>{item(id).label}</h3><p>{item(id).rationale}。</p></div></li>)}</ol>:<p className="empty">該当する項目はありません</p>}</div>})}<LayerNote layer={layer} answer={answer}/></section>
+}
+function LayoutSection({number,answer}:{number:string;answer:Answer}) {
+  const ids=answer.selected.filter(id=>getLayer(item(id))==="layout"); const categories=[...new Set(ids.map(id=>item(id).category))];
+  return <section><h2><b>{number}</b> 間取り｜カテゴリ別一覧</h2><p className="layer-description">部屋構成や動線に関する要件をカテゴリ別にまとめています。優先度は5段階です。</p><div className="spec-rooms">{categories.map(category=><div className="spec-room" key={category}><h3>{category}</h3>{ids.filter(id=>item(id).category===category).sort((a,b)=>fivePointScore(answer,b)-fivePointScore(answer,a)).map(id=><ScoreRow key={id} id={id} answer={answer}/>)}</div>)}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}<LayerNote layer="layout" answer={answer}/></section>
 }
 function SpecSection({number,answer}:{number:string;answer:Answer}) {
   const ids=layerRanking(answer,"spec");
-  return <section><h2><b>{number}</b> 仕様や設備｜部屋別一覧</h2><p className="layer-description">間取りへの影響が比較的小さいオプションを、部屋別にまとめています。スコアは仕様・設備レイヤー内での相対的な優先度です。</p><div className="spec-rooms">{SPEC_ROOMS.map(room=>{const roomIds=ids.filter(id=>getSpecRoom(item(id))===room);if(!roomIds.length)return null;return <div className="spec-room" key={room}><h3>{room}</h3>{roomIds.map(id=><div className="spec-row" key={id}><div><small>{answer.priorities[id]==="must"?"Must":"Should"}｜{item(id).category}</small><b>{item(id).label}</b></div><div className="score"><strong>{priorityScore(answer,id)}</strong><span>/ 100</span></div></div>)}</div>})}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}</section>
+  return <section><h2><b>{number}</b> 仕様や設備｜部屋別一覧</h2><p className="layer-description">間取りへの影響が比較的小さいオプションを、部屋別にまとめています。優先度は5段階です。</p><div className="spec-rooms">{SPEC_ROOMS.map(room=>{const roomIds=ids.filter(id=>getSpecRoom(item(id))===room);if(!roomIds.length)return null;return <div className="spec-room" key={room}><h3>{room}</h3>{roomIds.sort((a,b)=>fivePointScore(answer,b)-fivePointScore(answer,a)).map(id=><ScoreRow key={id} id={id} answer={answer}/>)}</div>})}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}<LayerNote layer="spec" answer={answer}/></section>
 }
+function ScoreRow({id,answer}:{id:string;answer:Answer}) { return <div className="spec-row"><div><small>{answer.priorities[id]==="must"?"Must":"Should"}｜{item(id).category}</small><b>{item(id).label}</b></div><div className="score five"><strong>{fivePointScore(answer,id)}</strong><span>/ 5</span></div></div> }
+function LayerNote({layer,answer}:{layer:Layer;answer:Answer}) { const note=(answer.notes??{})[layer]?.trim(); return note?<div className="document-note"><small>選択肢にない希望</small><p>{note}</p></div>:null }
