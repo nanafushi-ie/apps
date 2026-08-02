@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IE requirements｜家づくり要件定義ツール",
-  description: "質問にタップで答えるだけで、家づくりの希望と優先順位を整理。設計士に渡せる要件定義書を作成します。",
+  title: "家づくりカルテ｜迷わない家づくりは、希望の整理から",
+  description: "家族の「必ず」と「できれば」を選ぶだけ。設計士にそのまま渡せる家づくりカルテを作成します。",
   icons: { icon: "/favicon.svg" },
 };
 

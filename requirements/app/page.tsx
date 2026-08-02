@@ -271,13 +271,13 @@ export default function Home() {
 
   if(!ready) return <main className="loading">要件を整理する準備をしています…</main>;
   return <main className="app">
-    {state.step!=="welcome" && <header className="topbar no-print"><button className="brand" onClick={()=>setState(s=>({...s,step:"welcome"}))}>IE <span>requirements</span></button><div className="progress"><i style={{width:`${progress}%`}} /></div><button className="text-button" onClick={reset}>リセット</button></header>}
+    {state.step!=="welcome" && <header className="topbar no-print"><button className="brand" onClick={()=>setState(s=>({...s,step:"welcome"}))}>家づくりカルテ <span>HOUSE BUILDING CHART</span></button><div className="progress"><i style={{width:`${progress}%`}} /></div><button className="text-button" onClick={reset}>リセット</button></header>}
 
     {state.step==="welcome" && <section className="welcome">
-      <div className="welcome-copy"><p className="eyebrow">間取りを描く、その前に。</p><h1>わが家の<br/><em>大事なこと</em>を決める。</h1><p className="lead">質問にタップで答えるだけ。家族の希望と優先順位を整理して、設計士に渡せる「家づくり要件定義書」をつくります。</p>
+      <div className="welcome-copy"><div className="service-lockup"><span>HOUSE BUILDING CHART</span><h2>家づくりカルテ</h2></div><p className="hero-kicker">間取りを描く、その前に。</p><h1>迷わない家づくりは、<br/><em>希望の整理</em>から。</h1><p className="lead">質問にタップで答えるだけ。家族の「必ず」と「できれば」を整理して、設計士にそのまま渡せる一枚にまとめます。</p>
         <div className="mode-grid"><button className={state.mode==="solo"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"solo"}))}><b>ひとりで整理</b><span>自分や家族の希望を1つにまとめる</span></button><button className={state.mode==="pair"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"pair"}))}><b>ふたりで整理</b><span>別々に回答して、違いを見つける</span></button></div>
-        <button className="primary large" onClick={()=>setState(s=>({...s,step:"basics"}))}>要件整理をはじめる <span>→</span></button><p className="save-note">入力内容はこの端末に自動保存されます</p></div>
-      <aside className="sample"><span className="paper-tag">完成イメージ</span><div className="paper"><small>HOUSE REQUIREMENTS</small><h2>家づくり要件定義書</h2><p className="paper-date">OUR HOME / 2026</p><hr/><h3>絶対に叶えたいこと</h3><ol><li><b>1</b><span>1階で生活を完結<br/><small>将来も無理なく暮らせる動線を重視</small></span></li><li><b>2</b><span>高気密高断熱<br/><small>年間を通じた室温の安定を重視</small></span></li><li><b>3</b><span>室内干しランドリー<br/><small>短い洗濯動線を重視</small></span></li></ol><div className="stamp">選択だけで<br/>完成</div></div></aside>
+        <button className="primary large" onClick={()=>setState(s=>({...s,step:"basics"}))}>カルテをつくる <span>→</span></button><p className="save-note">登録不要・入力内容はこの端末に自動保存</p><p className="operator-credit">運営：<a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくり <span aria-hidden="true">↗</span></a></p></div>
+      <aside className="sample"><span className="paper-tag">完成イメージ</span><div className="paper"><small>HOUSE BUILDING CHART</small><h2>家づくりカルテ</h2><p className="paper-date">OUR HOME / 2026</p><hr/><h3>必ず実現したいこと</h3><ol><li><b>1</b><span>1階で生活を完結<br/><small>将来も無理なく暮らせる動線を重視</small></span></li><li><b>2</b><span>高気密高断熱<br/><small>年間を通じた室温の安定を重視</small></span></li><li><b>3</b><span>室内干しランドリー<br/><small>短い洗濯動線を重視</small></span></li></ol><div className="stamp">選ぶだけで<br/>完成</div></div></aside>
     </section>}
 
     {state.step==="basics" && <section className="screen narrow"><StepHead number="01" title="わが家の前提を教えてください" text="近いものをひとつずつ選びます。あとから変更できます。" />
@@ -336,14 +336,14 @@ function mergeAnswers(answers:Answer[]):Answer {
   return {selected,priorities,ranking,scores,notes};
 }
 function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer;mode:Mode;diffs:DiffView[];onBack:()=>void}) {
-  return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOUSE REQUIREMENTS</small><h1>家づくり<br/>要件定義書</h1></div><div className="doc-mark">IE<br/><span>requirements</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
+  return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOUSE BUILDING CHART</small><h1>家づくり<br/>カルテ</h1></div><div className="doc-mark">家づくり<br/><span>カルテ</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
     <section><h2><b className="section-tag">基本情報</b> プロジェクト概要</h2><div className="facts">{(Object.keys(basics) as (keyof Basics)[]).map(k=><div key={k}><small>{BASIC_LABELS[k]}</small><b>{basics[k]}</b></div>)}</div></section>
     <LayerRequirementSection number="ライフスタイル・性能" layer="policy" answer={answer} />
     <LayoutSection number="間取り" answer={answer} />
     <SpecSection number="設備・仕様" answer={answer} />
     <section><h2><b className="section-tag">活用方法</b> 設計・見積もり時の使い方</h2><div className="guidance"><p><b>STEP 1</b>暮らし方と性能から確認する</p><p><b>STEP 2</b>その方針を満たす間取りを検討する</p><p><b>STEP 3</b>設備・仕様は部屋別の星を見て予算調整する</p></div></section>
     {mode==="pair"&&<section className="appendix"><h2><b>A</b> ふたりの回答差分</h2><p>統合前の回答で、話し合いが必要だった項目です。</p>{diffs.filter(d=>d.diffType!=="match").map(d=><div key={d.id}><b>{d.label}</b><span>{({conflict:"直接対立",gap:"温度差",one:"片方のみ"} as Record<string,string>)[d.diffType]}</span></div>)}</section>}
-    <footer>作成日 {new Intl.DateTimeFormat("ja-JP",{dateStyle:"long"}).format(new Date())}<span>IE REQUIREMENTS</span></footer></article></section>
+    <footer><span>作成日 {new Intl.DateTimeFormat("ja-JP",{dateStyle:"long"}).format(new Date())}</span><span className="doc-credit">#ななふしの家づくり</span><span>家づくりカルテ</span></footer></article></section>
 }
 function LayerRequirementSection({number,layer,answer}:{number:string;layer:Layer;answer:Answer}) {
   const ranked=layerRanking(answer,layer); const definition=LAYERS.find(l=>l.id===layer)!;
