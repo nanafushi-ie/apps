@@ -9,7 +9,7 @@ type Step = "welcome" | "basics" | "wishes" | "classify" | "rank" | "handoff" | 
 type Item = { id: string; category: string; label: string; description: string; rationale: string; type: "single" | "multi" };
 type DiffView = Omit<Item,"type"> & { selectionType:Item["type"]; diffType:"match"|"gap"|"one"|"conflict"; as:boolean; bs:boolean };
 type Help = { summary:string; effect:string; check:string };
-type Answer = { selected: string[]; priorities: Record<string, Priority>; ranking: string[]; scores: Record<string,number>; notes: Partial<Record<Layer,string>> };
+type Answer = { selected: string[]; priorities: Record<string, Priority>; ranking: string[]; scores: Record<string,number>; notes: Record<string,string> };
 type BasicOptionKey = "family" | "children" | "floor" | "budget" | "lot";
 type Basics = Record<BasicOptionKey,string> & { handleName:string; anonymous:boolean };
 
@@ -178,6 +178,11 @@ const getSpecRoom = (target:Item) => {
   return "家全体";
 };
 const EMPTY_ANSWER: Answer = { selected: [], priorities: {}, ranking: [], scores:{}, notes:{} };
+function normalizeAnswer(source?:Partial<Answer>):Answer {
+  const notes={...(source?.notes??{})};
+  LAYERS.forEach(layer=>{const legacy=notes[layer.id]?.trim();const first=CATEGORY_STEPS.find(step=>step.layer===layer.id);if(legacy&&first&&!notes[first.key])notes[first.key]=legacy;delete notes[layer.id];});
+  return {...EMPTY_ANSWER,...source,notes};
+}
 const EMPTY_BASICS: Basics = { handleName:"", anonymous:false, family:"", children:"", floor:"", budget:"", lot:"" };
 const BASIC_OPTIONS = {
   family:["1人","2人","3人","4人","5人以上"], children:["子どもなし","未就学児","小学生","中高生","成人した子"],
@@ -197,7 +202,7 @@ export default function Home() {
   const [sortState,setSortState] = useState<{sorted:string[]; pending:string[]; current:string; low:number; high:number; layerIndex:number; completed:string[]}|null>(null);
   const answer = state.answers[state.respondent];
 
-  useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,basics:{...EMPTY_BASICS,...parsed.basics},step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
+  useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,basics:{...EMPTY_BASICS,...parsed.basics},answers:[normalizeAnswer(parsed.answers?.[0]),normalizeAnswer(parsed.answers?.[1])],step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
   useEffect(() => { if(ready) localStorage.setItem("ie-requirements-v1",JSON.stringify(state)); },[state,ready]);
   useEffect(() => { if(ready) window.scrollTo(0,0); },[state.step,ready]);
   useEffect(() => {
@@ -215,7 +220,6 @@ export default function Home() {
   const currentLayer = LAYERS.find(layer => layer.id===categoryStep.layer)!;
   const currentLayerSteps = CATEGORY_STEPS.map((step,index)=>({step,index})).filter(({step})=>step.layer===currentLayer.id);
   const currentLayerCategoryIndex = currentLayerSteps.findIndex(({step})=>step.key===category);
-  const isLastInLayer = categoryIndex===CATEGORIES.length-1 || CATEGORY_STEPS[categoryIndex+1].layer!==categoryStep.layer;
 
   function toggle(id:string) {
     const target=item(id); let selected=[...answer.selected];
@@ -286,16 +290,15 @@ export default function Home() {
     </section>}
 
     {state.step==="basics" && <section className="screen narrow"><StepHead number="01" title="わが家の前提を教えてください" text="近いものをひとつずつ選びます。あとから変更できます。" />
-      <div className="basic-list"><fieldset className="identity-field"><legend><span>01</span>ハンドルネーム</legend><div className="identity-controls"><div><label htmlFor="handle-name">定義書に載せる名前</label><input id="handle-name" type="text" maxLength={30} disabled={state.basics.anonymous} value={state.basics.handleName} placeholder="例：ななふし" onChange={e=>setState(s=>({...s,basics:{...s.basics,handleName:e.target.value}}))}/><small>本名でなくて構いません。「さん」は自動で付きます。</small></div><label className="anonymous-toggle"><input type="checkbox" checked={state.basics.anonymous} onChange={e=>setState(s=>({...s,basics:{...s.basics,anonymous:e.target.checked}}))}/><span>匿名で作成する</span></label></div></fieldset>{(Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";return <fieldset key={key}><legend><span>{String(idx+2).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
+      <div className="basic-list"><fieldset className="identity-field"><legend><span>01</span>ハンドルネーム</legend><div className="identity-controls"><div><label htmlFor="handle-name">定義書に載せる名前</label><input id="handle-name" type="text" maxLength={30} disabled={state.basics.anonymous} value={state.basics.handleName} placeholder="例：ななふし" onChange={e=>setState(s=>({...s,basics:{...s.basics,handleName:e.target.value}}))}/><small>本名でなくて構いません。「さん」は自動で付きます。</small></div><label className="anonymous-toggle"><input type="checkbox" checked={state.basics.anonymous} onChange={e=>setState(s=>({...s,basics:{...s.basics,anonymous:e.target.checked}}))}/><span>匿名で作成する</span></label></div></fieldset>{(Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";return <fieldset key={key}><legend><span>{String(idx+2).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">または、具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
       <Nav next={()=>setState(s=>({...s,step:"wishes"}))} disabled={!canBasics} />
     </section>}
 
-    {state.step==="wishes" && <section className="screen"><StepHead number="02" title={`${state.mode==="pair"?`${state.respondent+1}人目の` : ""}希望を選んでください`} text="気になるものは、いったんすべて選んで大丈夫です。カテゴリを順番に確認します。" />
+    {state.step==="wishes" && <section className="screen"><StepHead number="02" title={`${state.mode==="pair"?`${state.respondent+1}人目の` : ""}希望を選んでください`} text="以下に並ぶ要件の候補から、気になるものをすべて選んでください。選んだ項目には「できれば」または「必ず」を指定できます。「できれば」は希望として伝えたいもの、「必ず」は優先して実現したいものです。" />
       <div className="stage-track" aria-label="希望整理の3つの区分">{LAYERS.map((stage,index)=><div key={stage.id} className={`stage-step ${stage.id===currentLayer.id?"active":"muted"}`} aria-current={stage.id===currentLayer.id?"step":undefined}><span>{String(index+1).padStart(2,"0")}</span><div><b>{stage.label}</b><small>{stage.description}</small></div></div>)}</div>
       <div className="category-position"><span>{categoryStep.category}</span><b>{currentLayerCategoryIndex + 1} / {currentLayerSteps.length}</b></div>
-      <div className="category-tabs">{currentLayerSteps.map(({step,index})=><button key={step.key} disabled={index>categoryIndex} className={category===step.key?"active":""} onClick={()=>moveCategory(index)}>{step.category}<small>{answer.selected.filter(id=>item(id).category===step.category&&getLayer(item(id))===step.layer).length||""}</small></button>)}</div>
       <div className="wish-grid">{ITEMS.filter(i=>i.category===categoryStep.category&&getLayer(i)===categoryStep.layer).map(i=>{const selected=answer.selected.includes(i.id);return <div key={i.id} className={selected?"wish selected":"wish"}><button className="wish-select" onClick={()=>toggle(i.id)}><span className="check">{selected?"✓":"＋"}</span><b>{i.label}</b><small>{i.description}</small>{i.type==="single"&&<i>ひとつだけ選択</i>}</button>{HELP[i.id]&&<button className="info-button" aria-label={`${i.label}の説明を見る`} onClick={()=>setHelpItemId(i.id)}>i</button>}{selected&&<div className="wish-priority" aria-label={`${i.label}の希望度`}><button className={answer.priorities[i.id]!=="must"?"active":""} onClick={()=>setPriority(i.id,"should")}>できれば</button><button className={answer.priorities[i.id]==="must"?"must active":"must"} onClick={()=>setPriority(i.id,"must")}>必ず</button></div>}</div>})}</div>
-      {isLastInLayer&&<div className="layer-note"><label htmlFor={`note-${currentLayer.id}`}>{currentLayer.label}について、選択肢にない希望</label><p>任意です。なければ空欄のまま進めます。</p><textarea id={`note-${currentLayer.id}`} value={(answer.notes??{})[currentLayer.id]??""} onChange={e=>patchAnswer({...answer,notes:{...(answer.notes??{}),[currentLayer.id]:e.target.value},scores:answer.scores??{}})} placeholder="例：休日は家族で料理を楽しめるようにしたい" rows={3}/></div>}
+      <div className="layer-note"><label htmlFor={`note-${categoryStep.key}`}>{categoryStep.category}について、選択肢にない希望</label><p>任意です。なければ空欄のまま進めます。</p><textarea id={`note-${categoryStep.key}`} value={(answer.notes??{})[categoryStep.key]??""} onChange={e=>patchAnswer({...answer,notes:{...(answer.notes??{}),[categoryStep.key]:e.target.value},scores:answer.scores??{}})} placeholder={`例：${categoryStep.category}について、ほかに伝えたい希望`} rows={3}/></div>
       <div className="selection-count"><b>{answer.selected.length}</b>件を選択中</div><Nav back={()=>categoryIndex===0?setState(s=>({...s,step:"basics"})):moveCategory(categoryIndex-1)} next={()=>isLastCategory?startRanking():moveCategory(categoryIndex+1)} disabled={isLastCategory&&answer.selected.length===0} label={isLastCategory?"優先順位へ進む":"次の項目へ進む"} />
     </section>}
 
@@ -338,7 +341,7 @@ function mergeAnswers(answers:Answer[]):Answer {
     return ids.sort((a,b)=>score(b)-score(a));
   });
   const scores=Object.fromEntries(selected.map(id=>[id,Math.round(answers.reduce((sum,a)=>sum+(a.selected.includes(id)?fivePointScore(a,id):0),0)/answers.filter(a=>a.selected.includes(id)).length)]));
-  const notes=Object.fromEntries(LAYERS.map(layer=>[layer.id,answers.map((a,index)=>(a.notes??{})[layer.id]?.trim()?`${index+1}人目：${(a.notes??{})[layer.id]}`:"").filter(Boolean).join("\n")])) as Partial<Record<Layer,string>>;
+  const notes=Object.fromEntries(CATEGORY_STEPS.map(step=>[step.key,answers.map((a,index)=>(a.notes??{})[step.key]?.trim()?`${index+1}人目：${(a.notes??{})[step.key]}`:"").filter(Boolean).join("\n")]).filter(([,note])=>note)) as Record<string,string>;
   return {selected,priorities,ranking,scores,notes};
 }
 function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer;mode:Mode;diffs:DiffView[];onBack:()=>void}) {
@@ -353,16 +356,16 @@ function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer
 }
 function LayerRequirementSection({number,layer,answer}:{number:string;layer:Layer;answer:Answer}) {
   const ranked=layerRanking(answer,layer); const definition=LAYERS.find(l=>l.id===layer)!;
-  return <section><h2><b className="section-tag">{number}</b> 大切にすること</h2><p className="layer-description">{definition.description}</p>{(["must","should"] as Priority[]).map(priority=>{const ids=ranked.filter(id=>answer.priorities[id]===priority);return <div className="priority-block" key={priority}><h3>{priority==="must"?"必ず実現したい":"できれば実現したい"}</h3>{ids.length?<ol className="requirements">{ids.map(id=><li key={id}><StarRating score={fivePointScore(answer,id)}/><div><small>{item(id).category}</small><h3>{item(id).label}</h3><p>{item(id).description}</p></div></li>)}</ol>:<p className="empty">該当する項目はありません</p>}</div>})}<LayerNote layer={layer} answer={answer}/></section>
+  return <section><h2><b className="section-tag">{number}</b> 大切にすること</h2><p className="layer-description">{definition.description}</p>{(["must","should"] as Priority[]).map(priority=>{const ids=ranked.filter(id=>answer.priorities[id]===priority);return <div className="priority-block" key={priority}><h3>{priority==="must"?"必ず実現したい":"できれば実現したい"}</h3>{ids.length?<ol className="requirements">{ids.map(id=><li key={id}><StarRating score={fivePointScore(answer,id)}/><div><small>{item(id).category}</small><h3>{item(id).label}</h3><p>{item(id).description}</p></div></li>)}</ol>:<p className="empty">該当する項目はありません</p>}</div>})}<CategoryNotes layer={layer} answer={answer}/></section>
 }
 function LayoutSection({number,answer}:{number:string;answer:Answer}) {
   const ids=answer.selected.filter(id=>getLayer(item(id))==="layout"); const categories=[...new Set(ids.map(id=>item(id).category))];
-  return <section><h2><b className="section-tag">{number}</b> カテゴリ別一覧</h2><p className="layer-description">部屋構成や動線に関する要件をカテゴリ別にまとめています。オレンジは「必ず」、緑は「できれば」を表します。</p><div className="spec-rooms">{categories.map(category=><div className="spec-room" key={category}><h3>{category}</h3>{ids.filter(id=>item(id).category===category).sort((a,b)=>fivePointScore(answer,b)-fivePointScore(answer,a)).map(id=><ScoreRow key={id} id={id} answer={answer}/>)}</div>)}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}<LayerNote layer="layout" answer={answer}/></section>
+  return <section><h2><b className="section-tag">{number}</b> カテゴリ別一覧</h2><p className="layer-description">部屋構成や動線に関する要件をカテゴリ別にまとめています。オレンジは「必ず」、緑は「できれば」を表します。</p><div className="spec-rooms">{categories.map(category=><div className="spec-room" key={category}><h3>{category}</h3>{ids.filter(id=>item(id).category===category).sort((a,b)=>fivePointScore(answer,b)-fivePointScore(answer,a)).map(id=><ScoreRow key={id} id={id} answer={answer}/>)}</div>)}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}<CategoryNotes layer="layout" answer={answer}/></section>
 }
 function SpecSection({number,answer}:{number:string;answer:Answer}) {
   const ids=layerRanking(answer,"spec");
-  return <section><h2><b className="section-tag">{number}</b> 部屋別一覧</h2><p className="layer-description">間取りへの影響が比較的小さいオプションを、部屋別にまとめています。オレンジは「必ず」、緑は「できれば」を表します。</p><div className="spec-rooms">{SPEC_ROOMS.map(room=>{const roomIds=ids.filter(id=>getSpecRoom(item(id))===room);if(!roomIds.length)return null;return <div className="spec-room" key={room}><h3>{room}</h3>{roomIds.sort((a,b)=>fivePointScore(answer,b)-fivePointScore(answer,a)).map(id=><ScoreRow key={id} id={id} answer={answer}/>)}</div>})}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}<LayerNote layer="spec" answer={answer}/></section>
+  return <section><h2><b className="section-tag">{number}</b> 部屋別一覧</h2><p className="layer-description">間取りへの影響が比較的小さいオプションを、部屋別にまとめています。オレンジは「必ず」、緑は「できれば」を表します。</p><div className="spec-rooms">{SPEC_ROOMS.map(room=>{const roomIds=ids.filter(id=>getSpecRoom(item(id))===room);if(!roomIds.length)return null;return <div className="spec-room" key={room}><h3>{room}</h3>{roomIds.sort((a,b)=>fivePointScore(answer,b)-fivePointScore(answer,a)).map(id=><ScoreRow key={id} id={id} answer={answer}/>)}</div>})}</div>{!ids.length&&<p className="empty">該当する項目はありません</p>}<CategoryNotes layer="spec" answer={answer}/></section>
 }
 function ScoreRow({id,answer}:{id:string;answer:Answer}) { const priority=answer.priorities[id]==="must"?"must":"should"; return <div className={`spec-row ${priority}`}><div><small>{item(id).category}</small><b>{item(id).label}</b><p>{item(id).description}</p></div><span className={`priority-badge ${priority}`}>{priority==="must"?"必ず":"できれば"}</span></div> }
 function StarRating({score}:{score:number}) { return <div className="stars" role="img" aria-label={`優先度5段階中${score}`}><span>{"★".repeat(score)}</span><i>{"★".repeat(5-score)}</i></div> }
-function LayerNote({layer,answer}:{layer:Layer;answer:Answer}) { const note=(answer.notes??{})[layer]?.trim(); return note?<div className="document-note"><small>選択肢にない希望</small><p>{note}</p></div>:null }
+function CategoryNotes({layer,answer}:{layer:Layer;answer:Answer}) { const entries=CATEGORY_STEPS.filter(step=>step.layer===layer).map(step=>({category:step.category,note:(answer.notes??{})[step.key]?.trim()})).filter(entry=>entry.note); return entries.length?<div className="document-notes"><h3>選択肢にない希望</h3>{entries.map(entry=><div className="document-note" key={entry.category}><small>{entry.category}</small><p>{entry.note}</p></div>)}</div>:null }
