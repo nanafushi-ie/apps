@@ -198,6 +198,7 @@ export default function Home() {
 
   useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
   useEffect(() => { if(ready) localStorage.setItem("ie-requirements-v1",JSON.stringify(state)); },[state,ready]);
+  useEffect(() => { if(ready) window.scrollTo(0,0); },[state.step,ready]);
   useEffect(() => {
     if(!helpItemId) return;
     const close=(event:KeyboardEvent)=>{ if(event.key==="Escape") setHelpItemId(null); };
@@ -211,6 +212,8 @@ export default function Home() {
   const isLastCategory = categoryIndex === CATEGORIES.length - 1;
   const categoryStep = CATEGORY_STEPS[categoryIndex] ?? CATEGORY_STEPS[0];
   const currentLayer = LAYERS.find(layer => layer.id===categoryStep.layer)!;
+  const currentLayerSteps = CATEGORY_STEPS.map((step,index)=>({step,index})).filter(({step})=>step.layer===currentLayer.id);
+  const currentLayerCategoryIndex = currentLayerSteps.findIndex(({step})=>step.key===category);
   const isLastInLayer = categoryIndex===CATEGORIES.length-1 || CATEGORY_STEPS[categoryIndex+1].layer!==categoryStep.layer;
 
   function toggle(id:string) {
@@ -271,13 +274,14 @@ export default function Home() {
 
   if(!ready) return <main className="loading">要件を整理する準備をしています…</main>;
   return <main className="app">
-    {state.step!=="welcome" && <header className="topbar no-print"><button className="brand" onClick={()=>setState(s=>({...s,step:"welcome"}))}>家づくりカルテ <span>HOUSE BUILDING CHART</span></button><div className="progress"><i style={{width:`${progress}%`}} /></div><button className="text-button" onClick={reset}>リセット</button></header>}
+    {state.step!=="welcome" && <header className="topbar no-print"><button className="brand" onClick={()=>setState(s=>({...s,step:"welcome"}))} aria-label="家づくりカルテのトップへ"><BrandMark /></button><div className="progress"><i style={{width:`${progress}%`}} /></div><button className="text-button" onClick={reset}>リセット</button></header>}
 
     {state.step==="welcome" && <section className="welcome">
-      <div className="welcome-copy"><div className="service-lockup"><span>HOUSE BUILDING CHART</span><h2>家づくりカルテ</h2></div><p className="hero-kicker">間取りを描く、その前に。</p><h1>迷わない家づくりは、<br/><em>希望の整理</em>から。</h1><p className="lead">質問にタップで答えるだけ。家族の「必ず」と「できれば」を整理して、設計士にそのまま渡せる一枚にまとめます。</p>
-        <div className="mode-grid"><button className={state.mode==="solo"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"solo"}))}><b>ひとりで整理</b><span>自分や家族の希望を1つにまとめる</span></button><button className={state.mode==="pair"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"pair"}))}><b>ふたりで整理</b><span>別々に回答して、違いを見つける</span></button></div>
+      <button className="welcome-brand" onClick={()=>setState(s=>({...s,step:"welcome"}))} aria-label="家づくりカルテ"><BrandMark /></button>
+      <div className="welcome-copy"><p className="hero-kicker">間取りを描く、その前に。</p><h1>迷わない家づくりは、<br/><em>希望の整理</em>から。</h1><p className="lead">質問にタップで答えるだけ。家族の「必ず」と「できれば」を整理して、設計士にそのまま渡せる一枚にまとめます。</p>
+        <div className="mode-grid"><button aria-pressed={state.mode==="solo"} className={state.mode==="solo"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"solo"}))}><span className="mode-choice" aria-hidden="true">{state.mode==="solo"?"✓ 選択中":"○ 選択する"}</span><b>ひとりで整理</b><span className="mode-description">自分や家族の希望を1つにまとめる</span></button><button aria-pressed={state.mode==="pair"} className={state.mode==="pair"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"pair"}))}><span className="mode-choice" aria-hidden="true">{state.mode==="pair"?"✓ 選択中":"○ 選択する"}</span><b>ふたりで整理</b><span className="mode-description">別々に回答して、違いを見つける</span></button></div>
         <button className="primary large" onClick={()=>setState(s=>({...s,step:"basics"}))}>カルテをつくる <span>→</span></button><p className="save-note">登録不要・入力内容はこの端末に自動保存</p><p className="operator-credit">運営：<a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくり <span aria-hidden="true">↗</span></a></p></div>
-      <aside className="sample"><span className="paper-tag">完成イメージ</span><div className="paper"><small>HOUSE BUILDING CHART</small><h2>家づくりカルテ</h2><p className="paper-date">OUR HOME / 2026</p><hr/><h3>必ず実現したいこと</h3><ol><li><b>1</b><span>1階で生活を完結<br/><small>将来も無理なく暮らせる動線を重視</small></span></li><li><b>2</b><span>高気密高断熱<br/><small>年間を通じた室温の安定を重視</small></span></li><li><b>3</b><span>室内干しランドリー<br/><small>短い洗濯動線を重視</small></span></li></ol><div className="stamp">選ぶだけで<br/>完成</div></div></aside>
+      <aside className="sample"><span className="paper-tag">完成イメージ</span><div className="paper"><small>HOME PLANNING BRIEF</small><h2>家づくりカルテ</h2><p className="paper-date">OUR HOME / 2026</p><hr/><h3>必ず実現したいこと</h3><ol><li><b>1</b><span>1階で生活を完結<br/><small>将来も無理なく暮らせる動線を重視</small></span></li><li><b>2</b><span>高気密高断熱<br/><small>年間を通じた室温の安定を重視</small></span></li><li><b>3</b><span>室内干しランドリー<br/><small>短い洗濯動線を重視</small></span></li></ol><div className="stamp">選ぶだけで<br/>完成</div></div></aside>
     </section>}
 
     {state.step==="basics" && <section className="screen narrow"><StepHead number="01" title="わが家の前提を教えてください" text="近いものをひとつずつ選びます。あとから変更できます。" />
@@ -286,9 +290,10 @@ export default function Home() {
     </section>}
 
     {state.step==="wishes" && <section className="screen"><StepHead number="02" title={`${state.mode==="pair"?`${state.respondent+1}人目の` : ""}希望を選んでください`} text="気になるものは、いったんすべて選んで大丈夫です。カテゴリを順番に確認します。" />
-      <div className={`layer-banner ${currentLayer.id}`}><small>{LAYERS.findIndex(l=>l.id===currentLayer.id)+1} / 3</small><b>{currentLayer.label}</b><span>{currentLayer.description}</span></div>
-      <div className="category-position"><span>{categoryStep.category}</span><b>{categoryIndex + 1} / {CATEGORIES.length}</b></div>
-      <div className="category-tabs">{CATEGORY_STEPS.map((step,index)=><button key={step.key} disabled={index>categoryIndex} className={category===step.key?"active":""} onClick={()=>moveCategory(index)}>{step.category}<small>{answer.selected.filter(id=>item(id).category===step.category&&getLayer(item(id))===step.layer).length||""}</small></button>)}</div>
+      <div className="stage-track" aria-label="希望整理の3つの区分">{LAYERS.map((stage,index)=><div key={stage.id} className={`stage-step ${stage.id===currentLayer.id?"active":"muted"}`} aria-current={stage.id===currentLayer.id?"step":undefined}><span>{String(index+1).padStart(2,"0")}</span><b>{stage.label}</b></div>)}</div>
+      <div className={`layer-banner ${currentLayer.id}`}><small>いま整理している区分</small><b>{currentLayer.label}</b><span>{currentLayer.description}</span></div>
+      <div className="category-position"><span>{categoryStep.category}</span><b>{currentLayerCategoryIndex + 1} / {currentLayerSteps.length}</b></div>
+      <div className="category-tabs">{currentLayerSteps.map(({step,index})=><button key={step.key} disabled={index>categoryIndex} className={category===step.key?"active":""} onClick={()=>moveCategory(index)}>{step.category}<small>{answer.selected.filter(id=>item(id).category===step.category&&getLayer(item(id))===step.layer).length||""}</small></button>)}</div>
       <div className="wish-grid">{ITEMS.filter(i=>i.category===categoryStep.category&&getLayer(i)===categoryStep.layer).map(i=>{const selected=answer.selected.includes(i.id);return <div key={i.id} className={selected?"wish selected":"wish"}><button className="wish-select" onClick={()=>toggle(i.id)}><span className="check">{selected?"✓":"＋"}</span><b>{i.label}</b><small>{i.description}</small>{i.type==="single"&&<i>ひとつだけ選択</i>}</button>{HELP[i.id]&&<button className="info-button" aria-label={`${i.label}の説明を見る`} onClick={()=>setHelpItemId(i.id)}>i</button>}{selected&&<div className="wish-priority" aria-label={`${i.label}の希望度`}><button className={answer.priorities[i.id]!=="must"?"active":""} onClick={()=>setPriority(i.id,"should")}>できれば</button><button className={answer.priorities[i.id]==="must"?"must active":"must"} onClick={()=>setPriority(i.id,"must")}>必ず</button></div>}</div>})}</div>
       {isLastInLayer&&<div className="layer-note"><label htmlFor={`note-${currentLayer.id}`}>{currentLayer.label}について、選択肢にない希望</label><p>任意です。なければ空欄のまま進めます。</p><textarea id={`note-${currentLayer.id}`} value={(answer.notes??{})[currentLayer.id]??""} onChange={e=>patchAnswer({...answer,notes:{...(answer.notes??{}),[currentLayer.id]:e.target.value},scores:answer.scores??{}})} placeholder="例：休日は家族で料理を楽しめるようにしたい" rows={3}/></div>}
       <div className="selection-count"><b>{answer.selected.length}</b>件を選択中</div><Nav back={()=>categoryIndex===0?setState(s=>({...s,step:"basics"})):moveCategory(categoryIndex-1)} next={()=>isLastCategory?startRanking():moveCategory(categoryIndex+1)} disabled={isLastCategory&&answer.selected.length===0} label={isLastCategory?"優先順位へ進む":"次の項目へ進む"} />
@@ -311,6 +316,7 @@ export default function Home() {
 }
 
 function StepHead({number,title,text}:{number:string,title:string,text:string}) { return <div className="step-head"><span>{number}</span><div><h1>{title}</h1><p>{text}</p></div></div> }
+function BrandMark() { return <span className="brand-lockup"><span className="brand-icon" aria-hidden="true"><i>✓</i></span><span className="brand-words"><b>家づくりカルテ</b><small>HOME PLANNING BRIEF</small></span></span> }
 function Nav({back,next,disabled,label="次へ進む"}:{back?:()=>void;next:()=>void;disabled?:boolean;label?:string}) { return <div className="nav no-print">{back?<button className="secondary" onClick={back}>← 戻る</button>:<span/>}<button className="primary" disabled={disabled} onClick={next}>{label} →</button></div> }
 function CompareCard({data,priority,onClick}:{data:Item;priority:Priority;onClick:()=>void}) { return <button className="compare-card" onClick={onClick}><small>{data.category}</small><span className={priority}>{priority==="must"?"必ず":"できれば"}</span><b>{data.label}</b><p>{data.description}</p><i>こちらを優先 →</i></button> }
 function HelpModal({target,help,close}:{target:Item;help:Help;close:()=>void}) { return <div className="help-overlay" role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)close()}}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title"><button className="help-close" onClick={close} aria-label="説明を閉じる">×</button><small>{target.category}｜用語の説明</small><h2 id="help-title">{target.label}</h2><p className="help-summary">{help.summary}</p><dl><div><dt>採用するとどうなる？</dt><dd>{help.effect}</dd></div><div><dt>何を確認すればいい？</dt><dd>{help.check}</dd></div></dl><button className="primary" onClick={close}>わかりました</button></section></div> }
@@ -336,7 +342,7 @@ function mergeAnswers(answers:Answer[]):Answer {
   return {selected,priorities,ranking,scores,notes};
 }
 function Document({basics,answer,mode,diffs,onBack}:{basics:Basics;answer:Answer;mode:Mode;diffs:DiffView[];onBack:()=>void}) {
-  return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOUSE BUILDING CHART</small><h1>家づくり<br/>カルテ</h1></div><div className="doc-mark">家づくり<br/><span>カルテ</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
+  return <section className="document-wrap"><div className="document-actions no-print"><button className="secondary" onClick={onBack}>← 内容を修正</button><button className="primary" onClick={()=>window.print()}>印刷・PDF保存</button></div><article className="document"><header><div><small>HOME PLANNING BRIEF</small><h1>家づくり<br/>カルテ</h1></div><div className="doc-mark">家づくり<br/><span>カルテ</span></div></header><p className="doc-intro">間取りを考える前に、わが家が大切にすることを優先順位とともに整理した資料です。</p>
     <section><h2><b className="section-tag">基本情報</b> プロジェクト概要</h2><div className="facts">{(Object.keys(basics) as (keyof Basics)[]).map(k=><div key={k}><small>{BASIC_LABELS[k]}</small><b>{basics[k]}</b></div>)}</div></section>
     <LayerRequirementSection number="ライフスタイル・性能" layer="policy" answer={answer} />
     <LayoutSection number="間取り" answer={answer} />
