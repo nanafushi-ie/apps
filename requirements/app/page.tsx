@@ -184,10 +184,16 @@ function normalizeAnswer(source?:Partial<Answer>):Answer {
   return {...EMPTY_ANSWER,...source,notes};
 }
 const EMPTY_BASICS: Basics = { handleName:"", anonymous:false, family:"", children:"", floor:"", budget:"", lot:"" };
+function normalizeBasics(source?:Partial<Basics>):Basics {
+  const basics={...EMPTY_BASICS,...source};
+  if(basics.family==="5人以上") basics.family="5人";
+  if(["整形地","変形地","旗竿地"].includes(basics.lot)) basics.lot="土地を所有している";
+  return basics;
+}
 const BASIC_OPTIONS = {
-  family:["1人","2人","3人","4人","5人以上"], children:["子どもなし","未就学児","小学生","中高生","成人した子"],
+  family:["1人","2人","3人","4人","5人","6人以上"], children:["子どもなし","未就学児","小学生","中高生","成人した子"],
   floor:["〜30坪","30〜35坪","35〜40坪","40坪〜","まだ未定"], budget:["〜2,500万円","2,500〜3,500万円","3,500〜4,500万円","4,500万円〜","まだ未定"],
-  lot:["整形地","変形地","旗竿地","土地探し中","まだ未定"]
+  lot:["土地を所有している","土地探し中","まだ未定"]
 };
 const BASIC_LABELS: Record<BasicOptionKey,string> = { family:"家族の人数", children:"子どもの年齢帯", floor:"延床面積の目安", budget:"建物予算", lot:"敷地条件" };
 
@@ -202,7 +208,7 @@ export default function Home() {
   const [sortState,setSortState] = useState<{sorted:string[]; pending:string[]; current:string; low:number; high:number; layerIndex:number; completed:string[]}|null>(null);
   const answer = state.answers[state.respondent];
 
-  useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,basics:{...EMPTY_BASICS,...parsed.basics},answers:[normalizeAnswer(parsed.answers?.[0]),normalizeAnswer(parsed.answers?.[1])],step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
+  useEffect(() => { const saved=localStorage.getItem("ie-requirements-v1"); if(saved) try { const parsed=JSON.parse(saved); setState({...parsed,basics:normalizeBasics(parsed.basics),answers:[normalizeAnswer(parsed.answers?.[0]),normalizeAnswer(parsed.answers?.[1])],step:parsed.step==="classify"?"wishes":parsed.step}); } catch {} setReady(true); },[]);
   useEffect(() => { if(ready) localStorage.setItem("ie-requirements-v1",JSON.stringify(state)); },[state,ready]);
   useEffect(() => { if(ready) window.scrollTo(0,0); },[state.step,ready]);
   useEffect(() => {
@@ -290,7 +296,7 @@ export default function Home() {
     </section>}
 
     {state.step==="basics" && <section className="screen narrow"><StepHead number="01" title="わが家の前提を教えてください" text="近いものをひとつずつ選びます。あとから変更できます。" />
-      <div className="basic-list"><fieldset className="identity-field"><legend><span>01</span>ハンドルネーム</legend><div className="identity-controls"><div><label htmlFor="handle-name">定義書に載せる名前</label><input id="handle-name" type="text" maxLength={30} disabled={state.basics.anonymous} value={state.basics.handleName} placeholder="例：ななふし" onChange={e=>setState(s=>({...s,basics:{...s.basics,handleName:e.target.value}}))}/><small>本名でなくて構いません。「さん」は自動で付きます。</small></div><label className="anonymous-toggle"><input type="checkbox" checked={state.basics.anonymous} onChange={e=>setState(s=>({...s,basics:{...s.basics,anonymous:e.target.checked}}))}/><span>匿名で作成する</span></label></div></fieldset>{(Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";return <fieldset key={key}><legend><span>{String(idx+2).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">または、具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
+      <div className="basic-list"><fieldset className="identity-field"><legend><span>01</span>ハンドルネーム</legend><div className="identity-controls"><div><label htmlFor="handle-name">定義書に載せる名前</label><input id="handle-name" type="text" maxLength={30} disabled={state.basics.anonymous} value={state.basics.handleName} placeholder="例：ななふし" onChange={e=>setState(s=>({...s,basics:{...s.basics,handleName:e.target.value}}))}/><small>本名でなくて構いません。「さん」は自動で付きます。</small></div><label className="anonymous-toggle"><input type="checkbox" checked={state.basics.anonymous} onChange={e=>setState(s=>({...s,basics:{...s.basics,anonymous:e.target.checked}}))}/><span>匿名で作成する</span></label></div></fieldset>{(Object.keys(BASIC_OPTIONS) as BasicOptionKey[]).map((key,idx)=>{const customBudget=key==="budget"&&!BASIC_OPTIONS.budget.includes(state.basics.budget)?state.basics.budget.replace(/万円$/,""):"";const customChildren=key==="children"&&!BASIC_OPTIONS.children.includes(state.basics.children)?state.basics.children:"";return <fieldset key={key}><legend><span>{String(idx+2).padStart(2,"0")}</span>{BASIC_LABELS[key]}</legend><div className="chips">{BASIC_OPTIONS[key].map(v=><button className={state.basics[key]===v?"chip selected":"chip"} onClick={()=>setState(s=>({...s,basics:{...s.basics,[key]:v}}))} key={v}>{v}</button>)}</div>{key==="children"&&<div className="free-basic"><label htmlFor="children-custom">または、自由に入力</label><input id="children-custom" type="text" maxLength={50} value={customChildren} placeholder="例：3歳と8歳" onChange={e=>setState(s=>({...s,basics:{...s.basics,children:e.target.value}}))}/><small>入力した内容が定義書に記載されます。</small></div>}{key==="budget"&&<div className="exact-budget"><label htmlFor="exact-budget">または、具体的な金額を入力する</label><div><input id="exact-budget" inputMode="numeric" autoComplete="off" value={customBudget} placeholder="例：3,800" onChange={e=>{const digits=e.target.value.replace(/[^0-9]/g,"");setState(s=>({...s,basics:{...s.basics,budget:digits?`${Number(digits).toLocaleString("ja-JP")}万円`:""}}));}}/><span>万円</span></div><small>選択肢ではなく、入力した金額が定義書に記載されます。</small></div>}</fieldset>})}</div>
       <Nav next={()=>setState(s=>({...s,step:"wishes"}))} disabled={!canBasics} />
     </section>}
 

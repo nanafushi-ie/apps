@@ -110,3 +110,6 @@
 
 .category-position{margin-bottom:24px;padding:15px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.category-position>span{font-family:"Yu Mincho",YuMincho,"Hiragino Mincho ProN",serif;font-size:24px;font-weight:800;letter-spacing:.02em;color:var(--ink)}.category-position>b{display:flex;align-items:baseline;gap:5px}.category-position>b:before{content:"この区分";font:10px/1.2 inherit;color:var(--muted);letter-spacing:0}
 @media(max-width:600px){.category-position>span{font-size:20px}.category-position{margin-bottom:18px;padding:12px 0}}
+
+.free-basic{margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.free-basic label{font-size:12px;font-weight:800}.free-basic input{width:min(320px,100%);min-height:44px;border:1px solid var(--line);border-radius:3px;background:var(--card);padding:0 13px;font:14px inherit;color:var(--ink)}.free-basic input:focus{outline:2px solid rgba(232,104,61,.25);border-color:var(--orange)}.free-basic small{width:100%;font-size:11px!important;color:var(--muted)}
+@media(max-width:500px){.free-basic{align-items:flex-start;flex-direction:column;gap:8px}.free-basic small{line-height:1.5}}
