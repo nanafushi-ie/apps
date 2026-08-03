@@ -115,5 +115,7 @@
 @media(max-width:500px){.free-basic{align-items:flex-start;flex-direction:column;gap:8px}.free-basic small{line-height:1.5}}
 
 /* Keep each basic-information heading visually attached to the controls below it. */
-.basic-list fieldset{padding:40px 0 24px;border-top-color:#d3d0c7}.basic-list legend{float:left;font-size:18px;line-height:1.35;margin:0 0 18px;font-weight:900}.basic-list legend+*{clear:both}.basic-list legend span{font-size:12px;margin-right:22px}
+.basic-list fieldset{padding:40px 0 24px;border-top-color:#d3d0c7}.basic-list legend{float:left;font-size:18px;line-height:1.35;margin:0 0 18px;font-weight:700}.basic-list legend+*{clear:both}.basic-list legend span{font-size:12px;margin-right:22px}
 @media(max-width:600px){.basic-list fieldset{padding:32px 0 20px}.basic-list legend{font-size:17px;margin-bottom:15px}.basic-list legend span{margin-right:15px}}
+
+@media print{.facts{grid-template-columns:repeat(6,1fr)}}

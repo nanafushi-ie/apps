@@ -10,7 +10,7 @@ type Item = { id: string; category: string; label: string; description: string; 
 type DiffView = Omit<Item,"type"> & { selectionType:Item["type"]; diffType:"match"|"gap"|"one"|"conflict"; as:boolean; bs:boolean };
 type Help = { summary:string; effect:string; check:string };
 type Answer = { selected: string[]; priorities: Record<string, Priority>; ranking: string[]; scores: Record<string,number>; notes: Record<string,string> };
-type BasicOptionKey = "family" | "children" | "floor" | "budget" | "lot";
+type BasicOptionKey = "family" | "children" | "floor" | "stories" | "budget" | "lot";
 type Basics = Record<BasicOptionKey,string> & { handleName:string; anonymous:boolean };
 
 const ITEMS: Item[] = [
@@ -183,19 +183,20 @@ function normalizeAnswer(source?:Partial<Answer>):Answer {
   LAYERS.forEach(layer=>{const legacy=notes[layer.id]?.trim();const first=CATEGORY_STEPS.find(step=>step.layer===layer.id);if(legacy&&first&&!notes[first.key])notes[first.key]=legacy;delete notes[layer.id];});
   return {...EMPTY_ANSWER,...source,notes};
 }
-const EMPTY_BASICS: Basics = { handleName:"", anonymous:false, family:"", children:"", floor:"", budget:"", lot:"" };
+const EMPTY_BASICS: Basics = { handleName:"", anonymous:false, family:"", children:"", floor:"", stories:"", budget:"", lot:"" };
 function normalizeBasics(source?:Partial<Basics>):Basics {
   const basics={...EMPTY_BASICS,...source};
+  if(!source?.stories) basics.stories="まだ未定";
   if(basics.family==="5人以上") basics.family="5人";
   if(["整形地","変形地","旗竿地"].includes(basics.lot)) basics.lot="土地を所有している";
   return basics;
 }
 const BASIC_OPTIONS = {
   family:["1人","2人","3人","4人","5人","6人以上"], children:["子どもなし","未就学児","小学生","中高生","成人した子"],
-  floor:["〜30坪","30〜35坪","35〜40坪","40坪〜","まだ未定"], budget:["〜2,500万円","2,500〜3,500万円","3,500〜4,500万円","4,500万円〜","まだ未定"],
+  floor:["〜30坪","30〜35坪","35〜40坪","40坪〜","まだ未定"], stories:["平屋","2階建て","3階建て","まだ未定"], budget:["〜2,500万円","2,500〜3,500万円","3,500〜4,500万円","4,500万円〜","まだ未定"],
   lot:["土地を所有している","土地探し中","まだ未定"]
 };
-const BASIC_LABELS: Record<BasicOptionKey,string> = { family:"家族の人数", children:"子どもの年齢帯", floor:"延床面積の目安", budget:"建物予算", lot:"敷地条件" };
+const BASIC_LABELS: Record<BasicOptionKey,string> = { family:"家族の人数", children:"子どもの年齢帯", floor:"延床面積の目安", stories:"希望する階数", budget:"建物予算", lot:"敷地条件" };
 
 const item = (id:string) => ITEMS.find(i => i.id === id)!;
 const initialState = () => ({ step:"welcome" as Step, mode:"solo" as Mode, basics:EMPTY_BASICS, respondent:0, answers:[EMPTY_ANSWER, EMPTY_ANSWER] as Answer[] });
