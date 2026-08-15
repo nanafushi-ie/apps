@@ -87,16 +87,6 @@
 </head>
 <body class="text-slate-900 overflow-hidden">
     <div id="root"></div>
-    <aside class="operator-profile no-print" aria-labelledby="operator-profile-title">
-        <img src="./nanafushi-profile.webp" alt="草木に囲まれたななふしと家のイラスト" />
-        <div>
-            <p class="operator-profile-label">運営者プロフィール</p>
-            <h2 id="operator-profile-title">ななふし</h2>
-            <p>IT系研究職・2児の父として、一級建築士の妻とともに注文住宅づくりを検討中。</p>
-            <p>noteでは、家づくりの検討過程を、できるだけ感覚だけでなく「なぜそう考えたか」まで整理して発信しています。</p>
-            <a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくりをnoteで読む <span aria-hidden="true">↗</span></a>
-        </div>
-    </aside>
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
@@ -238,13 +228,13 @@
             const commit = (rawValue = draft) => {
                 const numeric = Number(String(rawValue).replace(/[^\d]/g, ''));
                 const safeValue = Number.isFinite(numeric) && numeric > 0 ? numeric : value;
-                onCommit(safeValue);
+                onCommit(safeValue, { source: 'input' });
             };
 
             const stepBy = (delta) => {
                 const nextValue = Math.max(stepMm, value + delta);
                 setDraft(String(nextValue));
-                onCommit(nextValue);
+                onCommit(nextValue, { source: 'step' });
             };
 
             return (
@@ -373,6 +363,7 @@
         };
 
         const App = () => {
+            const [entryStep, setEntryStep] = useState('welcome');
             const [elements, setElements] = useState([]);
             const [selectedId, setSelectedId] = useState(null);
             const [moduleKey, setModuleKey] = useState('tatami');
@@ -395,12 +386,20 @@
                 startX: 0, startY: 0, initialX: 0, initialY: 0, initialW: 0, initialH: 0, initialViewX: 0, initialViewY: 0, startDist: 0, initialScale: 1, linkedFurniture: []
             });
 
-            const mmToGrid = (mm) => Math.max(1, Math.round((Number(mm) || 0) / unitSizeMm));
-            const gridToMm = (grid) => Math.round((Number(grid) || 0) * unitSizeMm);
-            const legacyGridToCurrent = (grid) => Math.max(1, Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm));
-            const legacyPositionToCurrent = (grid) => Math.round((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm);
+            const GRID_SNAP = 0.5;
+            const DIRECT_INPUT_STEP_MM = 10;
+            const snapToGrid = (value) => Math.round(value / GRID_SNAP) * GRID_SNAP;
+            const mmToGrid = (mm, source = 'input') => {
+                const numericMm = Number(mm) || 0;
+                const normalizedMm = source === 'input'
+                    ? Math.round(numericMm / DIRECT_INPUT_STEP_MM) * DIRECT_INPUT_STEP_MM
+                    : numericMm;
+                return Math.max(DIRECT_INPUT_STEP_MM / unitSizeMm, normalizedMm / unitSizeMm);
+            };
+            const gridToMm = (grid) => Math.round((Number(grid) || 0) * unitSizeMm * 10) / 10;
+            const legacyGridToCurrent = (grid) => Math.max(GRID_SNAP, snapToGrid((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm));
+            const legacyPositionToCurrent = (grid) => snapToGrid((Number(grid) || 0) * LEGACY_UNIT_SIZE_MM / unitSizeMm);
             const gridPixels = GRID_PIXELS * unitSizeMm / LEGACY_UNIT_SIZE_MM;
-            const snapToGrid = (value) => Math.round(value);
 
             const calculateArea = (w, h) => {
                 const unitMeters = unitSizeMm / 1000;
@@ -416,8 +415,8 @@
                 const nextModule = MODULE_OPTIONS[nextKey];
                 if (!nextModule || elements.length > 0) return;
                 setBaseDraft(current => ({
-                    w: Math.max(1, Math.round(current.w * unitSizeMm / nextModule.unitSizeMm)),
-                    h: Math.max(1, Math.round(current.h * unitSizeMm / nextModule.unitSizeMm))
+                    w: Math.max(GRID_SNAP, snapToGrid(current.w * unitSizeMm / nextModule.unitSizeMm)),
+                    h: Math.max(GRID_SNAP, snapToGrid(current.h * unitSizeMm / nextModule.unitSizeMm))
                 }));
                 setModuleKey(nextModule.key);
                 setUnitSizeMm(nextModule.unitSizeMm);
@@ -481,8 +480,8 @@
 
                     return {
                         ...item,
-                        x: Math.round(Number(room.x) + roomSize.h - relY - furnitureSize.h),
-                        y: Math.round(Number(room.y) + relX),
+                        x: snapToGrid(Number(room.x) + roomSize.h - relY - furnitureSize.h),
+                        y: snapToGrid(Number(room.y) + relX),
                         rotation: (linked.initialRotation + 90) % 360
                     };
                 };
@@ -521,6 +520,7 @@
                     try {
                         const parsed = JSON.parse(event.target.result);
                         loadProjectData(parsed);
+                        if (Array.isArray(parsed.elements)) setEntryStep('editor');
                         setShowOpenOptions(false);
                     } catch (err) {
                         alert("有効なプロジェクトファイルではありません。");
@@ -699,7 +699,7 @@
                     setSelectedId(id);
                     if (action === 'resize') {
                         setInteractionMode('resize');
-                        interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialW: Number(el.w), initialH: Number(el.h), linkedFurniture: [] };
+                        interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialW: Number(el.w), initialH: Number(el.h), initialRotation: normalizeRotation(el.rotation), linkedFurniture: [] };
                     } else {
                         setInteractionMode('move');
                         interactionRef.current = { ...interactionRef.current, startX: clientX, startY: clientY, initialX: Number(el.x), initialY: Number(el.y), linkedFurniture: getLinkedFurniture(el) };
@@ -735,6 +735,14 @@
                 } else if (interactionMode === 'move' || interactionMode === 'resize') {
                     const dx_grid = (clientX - interactionRef.current.startX) / (view.scale * gridPixels);
                     const dy_grid = (clientY - interactionRef.current.startY) / (view.scale * gridPixels);
+                    const rotation = interactionRef.current.initialRotation || 0;
+                    const resizeDelta = rotation === 90
+                        ? { w: dy_grid, h: -dx_grid }
+                        : rotation === 180
+                            ? { w: -dx_grid, h: -dy_grid }
+                            : rotation === 270
+                                ? { w: -dy_grid, h: dx_grid }
+                                : { w: dx_grid, h: dy_grid };
 
                     setElements(prev => prev.map(el => {
                         if (interactionMode === 'move') {
@@ -758,8 +766,8 @@
                         if (el.id !== selectedId) return el;
                         return {
                             ...el,
-                            w: Math.max(1, snapToGrid(interactionRef.current.initialW + dx_grid)),
-                            h: Math.max(1, snapToGrid(interactionRef.current.initialH + dy_grid))
+                            w: Math.max(GRID_SNAP, snapToGrid(interactionRef.current.initialW + resizeDelta.w)),
+                            h: Math.max(GRID_SNAP, snapToGrid(interactionRef.current.initialH + resizeDelta.h))
                         };
                     }));
                 }
@@ -903,6 +911,44 @@
                 };
             };
 
+            if (entryStep === 'welcome') {
+                return (
+                    <main className="min-h-screen bg-[#eee9df] px-4 py-10 font-sans text-[#29372f] sm:py-16">
+                        <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".json" className="hidden" />
+                        <section className="mx-auto w-full max-w-5xl overflow-hidden rounded-[2rem] border border-[#d8d0c2] bg-[#fffdf8] shadow-2xl">
+                            <div className="grid gap-0 lg:grid-cols-[1.05fr_.95fr]">
+                                <div className="p-7 sm:p-12">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#bf6b32]">Floor plan sketcher</p>
+                                    <div className="mt-5 flex items-center gap-3">
+                                        <span className="rounded-2xl bg-emerald-800 p-3 text-white shadow-lg"><SvgIcon name="Home" size={25} /></span>
+                                        <div><h1 className="text-2xl font-black sm:text-3xl">間取りスケッチャー</h1><p className="mt-1 text-xs font-bold text-slate-400">まずは、部屋の広さと並びから。</p></div>
+                                    </div>
+                                    <p className="mt-7 text-sm font-bold leading-8 text-slate-600">新しい間取りを一からつくるか、以前保存したJSONファイルから続きを始めるか選んでください。</p>
+                                    <div className="mt-7 grid gap-3">
+                                        <button type="button" onClick={() => setEntryStep('setup')} className="flex min-h-[92px] items-center gap-4 rounded-2xl border-2 border-emerald-700 bg-emerald-800 p-5 text-left text-white shadow-lg transition hover:bg-emerald-900 active:scale-[0.99]">
+                                            <span className="rounded-xl bg-white/15 p-3"><SvgIcon name="Plus" size={24} /></span>
+                                            <span><b className="block text-base">はじめから間取りをつくる</b><small className="mt-1 block font-bold text-emerald-100">家の外形を設定して、新しいプランを始めます</small></span>
+                                        </button>
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-[92px] items-center gap-4 rounded-2xl border-2 border-slate-200 bg-white p-5 text-left text-slate-700 shadow-sm transition hover:border-emerald-400 hover:bg-amber-50 active:scale-[0.99]">
+                                            <span className="rounded-xl bg-emerald-50 p-3 text-emerald-700"><SvgIcon name="FileText" size={24} /></span>
+                                            <span><b className="block text-base">既存の間取りを読み込む</b><small className="mt-1 block font-bold text-slate-400">保存済みのJSONファイルから再開します</small></span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <aside className="border-t border-[#d8d0c2] bg-[#f6f1e7] p-7 sm:p-10 lg:border-l lg:border-t-0" aria-labelledby="welcome-operator-title">
+                                    <img src="./nanafushi-profile.webp" alt="草木に囲まれたななふしと家のイラスト" className="h-32 w-32 rounded-full border-[5px] border-white object-cover shadow-md" />
+                                    <p className="mt-6 text-[10px] font-black uppercase tracking-[0.16em] text-[#bf6b32]">運営者プロフィール</p>
+                                    <h2 id="welcome-operator-title" className="mt-2 font-serif text-2xl font-black">ななふし</h2>
+                                    <p className="mt-4 text-sm font-bold leading-7 text-slate-600">IT系研究職・2児の父として、一級建築士の妻とともに注文住宅づくりを検討中。</p>
+                                    <p className="mt-3 text-sm font-bold leading-7 text-slate-600">noteでは、家づくりの検討過程を、できるだけ感覚だけでなく「なぜそう考えたか」まで整理して発信しています。</p>
+                                    <a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 text-sm font-black text-emerald-800 underline decoration-emerald-300 underline-offset-4">ななふしの家づくりをnoteで読む <span aria-hidden="true">↗</span></a>
+                                </aside>
+                            </div>
+                        </section>
+                    </main>
+                );
+            }
+
             return (
                 <div className="app-shell flex flex-col bg-[#eee9df] overflow-hidden font-sans select-none text-[#29372f]">
                     <header className="bg-[#fbf7ef] border-b border-[#d8d0c2] px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center z-50 shrink-0 shadow-sm">
@@ -1018,8 +1064,8 @@
                                                 })}
                                             </div>
                                         </div>
-                                        <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} stepMm={unitSizeMm} onCommit={(mm) => setBaseDraft({...baseDraft, w: mmToGrid(mm)})} large />
-                                        <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} stepMm={unitSizeMm} onCommit={(mm) => setBaseDraft({...baseDraft, h: mmToGrid(mm)})} large />
+                                        <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} stepMm={unitSizeMm / 2} onCommit={(mm, meta) => setBaseDraft({...baseDraft, w: mmToGrid(mm, meta.source)})} large />
+                                        <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} stepMm={unitSizeMm / 2} onCommit={(mm, meta) => setBaseDraft({...baseDraft, h: mmToGrid(mm, meta.source)})} large />
                                         <div>
                                             <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">検討するフロア</p>
                                             <div className="grid grid-cols-3 gap-2">
@@ -1071,14 +1117,14 @@
                                     <section className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-inner">
                                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><SvgIcon name="Settings" size={14}/> {selectedId && selectedEl.type !== 'base' ? 'パーツ微調整' : '家の外寸微調整'}</h3>
                                         <div className="grid grid-cols-1 gap-2">
-                                            <DimensionInput label="幅 (mm)" value={selectedId ? gridToMm(selectedEl.w) : gridToMm(baseEl.w)} stepMm={unitSizeMm} onCommit={(mm) => {
-                                                setElements(prev => prev.map(el => selectedId ? (el.id === selectedId ? {...el, w: mmToGrid(mm)} : el) : (el.type === 'base' ? {...el, w: mmToGrid(mm)} : el)));
+                                            <DimensionInput label="幅 (mm)" value={selectedId ? gridToMm(selectedEl.w) : gridToMm(baseEl.w)} stepMm={unitSizeMm / 2} onCommit={(mm, meta) => {
+                                                setElements(prev => prev.map(el => selectedId ? (el.id === selectedId ? {...el, w: mmToGrid(mm, meta.source)} : el) : (el.type === 'base' ? {...el, w: mmToGrid(mm, meta.source)} : el)));
                                             }} />
-                                            <DimensionInput label="奥行 (mm)" value={selectedId ? gridToMm(selectedEl.h) : gridToMm(baseEl.h)} stepMm={unitSizeMm} onCommit={(mm) => {
-                                                setElements(prev => prev.map(el => selectedId ? (el.id === selectedId ? {...el, h: mmToGrid(mm)} : el) : (el.type === 'base' ? {...el, h: mmToGrid(mm)} : el)));
+                                            <DimensionInput label="奥行 (mm)" value={selectedId ? gridToMm(selectedEl.h) : gridToMm(baseEl.h)} stepMm={unitSizeMm / 2} onCommit={(mm, meta) => {
+                                                setElements(prev => prev.map(el => selectedId ? (el.id === selectedId ? {...el, h: mmToGrid(mm, meta.source)} : el) : (el.type === 'base' ? {...el, h: mmToGrid(mm, meta.source)} : el)));
                                             }} />
                                         </div>
-                                        <p className="text-[9px] font-bold text-slate-400">{MODULE_OPTIONS[moduleKey]?.label || 'カスタム'}：1目盛り {unitSizeMm}mm</p>
+                                        <p className="text-[9px] font-bold text-slate-400">{MODULE_OPTIONS[moduleKey]?.label || 'カスタム'}：操作単位 {unitSizeMm / 2}mm・直接入力 10mm単位</p>
                                         <div className="rounded-xl border border-emerald-100 bg-white p-3 text-center" aria-live="polite">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">家の外形面積</p>
                                             <p className="mt-1 text-xl font-black text-emerald-900">{baseArea.tsubo}<span className="ml-1 text-xs">坪</span></p>
@@ -1163,11 +1209,9 @@
                                                             >
                                                                 <SvgIcon name="Rotate" size={18} className="sm:w-4 sm:h-4" />
                                                             </div>
-                                                            {el.type === 'room' && (
-                                                                <div className="absolute -bottom-6 -right-6 sm:-bottom-5 sm:-right-5 w-12 h-12 sm:w-10 sm:h-10 bg-emerald-800 text-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white cursor-nwse-resize z-50 active:scale-90 transition-transform touch-none" data-action="resize">
-                                                                    <SvgIcon name="Resize" size={24} className="sm:w-5 sm:h-5" />
-                                                                </div>
-                                                            )}
+                                                            <div className="absolute -bottom-6 -right-6 sm:-bottom-5 sm:-right-5 w-12 h-12 sm:w-10 sm:h-10 bg-emerald-800 text-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white cursor-nwse-resize z-50 active:scale-90 transition-transform touch-none" data-action="resize">
+                                                                <SvgIcon name="Resize" size={24} className="sm:w-5 sm:h-5" />
+                                                            </div>
                                                             <div className="absolute -top-5 -left-5 sm:-top-4 sm:-left-4 w-10 h-10 sm:w-8 sm:h-8 bg-white border border-slate-100 rounded-full flex items-center justify-center shadow-2xl text-red-500 active:scale-75 transition-transform cursor-pointer"
                                                                 onClick={(e) => { e.stopPropagation(); setElements(prev => prev.filter(item => item.id !== el.id)); setSelectedId(null); }}
                                                             >
