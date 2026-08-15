@@ -295,6 +295,21 @@ input[type="range"] { width: 100%; accent-color: var(--leaf); }
   font-size: 11px;
 }
 .lifestyle-control select { margin-top: 8px; }
+.cost-link-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--leaf-dark);
+  font-size: 10px;
+  font-weight: 700;
+}
+.cost-link-row input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  accent-color: var(--leaf);
+}
 .preset-locked input:not([type="checkbox"]),
 .preset-locked select,
 input:disabled,

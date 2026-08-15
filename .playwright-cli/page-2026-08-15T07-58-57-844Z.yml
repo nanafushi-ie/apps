@@ -1,0 +1,228 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "ひだまりシミュレータ トップ" [ref=e3] [cursor=pointer]:
+      - /url: ./
+      - generic [ref=e4]: ☀
+      - generic [ref=e5]:
+        - strong [ref=e6]: ひだまりシミュレータ
+        - generic [ref=e7]: Solar cost simulator
+    - button "結果をシェア" [disabled] [ref=e8]
+  - main [ref=e9]:
+    - generic [ref=e10]:
+      - paragraph [ref=e11]: SOLAR COST PLANNER
+      - heading [level=1] [ref=e12]:
+        - text: わが家の太陽光、
+        - emphasis [ref=e13]: いつ元が取れる？
+      - paragraph [ref=e14]: 地域・暮らし・設備の条件から、30年間の支出を見える化。 太陽光なし、太陽光パネルのみ、太陽光パネル＋蓄電池を同じ条件で比べます。
+    - region "シミュレーター" [ref=e15]:
+      - complementary [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - paragraph [ref=e19]: YOUR PLAN
+            - heading "条件を入力" [level=2] [ref=e20]
+          - button "初期値に戻す" [ref=e21] [cursor=pointer]
+        - generic [ref=e22]:
+          - group "01 地域と暮らし" [ref=e23]:
+            - generic [ref=e25]:
+              - text: 都道府県
+              - combobox "都道府県 設置予定地を選びます。県庁所在地相当の日射条件をもとに、パネル1kW当たりの年間発電量を概算します。" [ref=e26]:
+                - option "都道府県を選択" [selected]
+                - option "北海道"
+                - option "青森県"
+                - option "岩手県"
+                - option "宮城県"
+                - option "秋田県"
+                - option "山形県"
+                - option "福島県"
+                - option "茨城県"
+                - option "栃木県"
+                - option "群馬県"
+                - option "埼玉県"
+                - option "千葉県"
+                - option "東京都"
+                - option "神奈川県"
+                - option "新潟県"
+                - option "富山県"
+                - option "石川県"
+                - option "福井県"
+                - option "山梨県"
+                - option "長野県"
+                - option "岐阜県"
+                - option "静岡県"
+                - option "愛知県"
+                - option "三重県"
+                - option "滋賀県"
+                - option "京都府"
+                - option "大阪府"
+                - option "兵庫県"
+                - option "奈良県"
+                - option "和歌山県"
+                - option "鳥取県"
+                - option "島根県"
+                - option "岡山県"
+                - option "広島県"
+                - option "山口県"
+                - option "徳島県"
+                - option "香川県"
+                - option "愛媛県"
+                - option "高知県"
+                - option "福岡県"
+                - option "佐賀県"
+                - option "長崎県"
+                - option "熊本県"
+                - option "大分県"
+                - option "宮崎県"
+                - option "鹿児島県"
+                - option "沖縄県"
+              - generic [ref=e27]: 設置予定地を選びます。県庁所在地相当の日射条件をもとに、パネル1kW当たりの年間発電量を概算します。
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - text: 年間電力使用量
+                - button "年間電力使用量の説明を開く" [ref=e30] [cursor=pointer]: i
+              - generic [ref=e31]:
+                - spinbutton [ref=e32]: "4700"
+                - generic [ref=e33]: kWh
+              - generic [ref=e34]: 1年間に家庭で使う電力量です。検針票や電力会社のアプリに記載された12か月分の「使用量」を合計します。
+              - generic [ref=e35]: 月平均の電気代の目安：約13,708円（使用量 約392kWh）
+          - group "02 太陽光パネル" [ref=e36]:
+            - generic [ref=e38]:
+              - generic [ref=e39]:
+                - strong [ref=e40]: おまかせ
+                - generic [ref=e41]: 一般的な戸建てを想定した値を自動で使います
+              - checkbox "おまかせ 一般的な戸建てを想定した値を自動で使います" [checked] [ref=e42]
+            - generic [ref=e43]:
+              - generic [ref=e44]:
+                - generic [ref=e45]:
+                  - text: パネル容量
+                  - button "パネル容量の説明を開く" [ref=e46] [cursor=pointer]: i
+                - generic [ref=e47]:
+                  - spinbutton [disabled] [ref=e48]: "5"
+                  - generic [ref=e49]: kW
+                - generic [ref=e50]: 一般的な戸建ては4〜6kW程度が目安です。「おまかせ」では標準的な5kWを使います。
+              - generic [ref=e51]:
+                - generic [ref=e52]:
+                  - text: 設置費用
+                  - button "設置費用の説明を開く" [ref=e53] [cursor=pointer]: i
+                - generic [ref=e54]:
+                  - spinbutton [disabled] [ref=e55]: "1400000"
+                  - generic [ref=e56]: 円
+                - generic [ref=e57]:
+                  - checkbox [checked] [disabled] [ref=e58]
+                  - generic [ref=e59]: パネル容量に連動（1kWあたり28万円）
+                - generic [ref=e60]: 5.0kW × 28万円 = 約140万円として自動計算します。
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - generic [ref=e63]:
+                  - text: 太陽光に使える補助金
+                  - button "太陽光に使える補助金の説明を開く" [ref=e64] [cursor=pointer]: i
+                - generic [ref=e65]:
+                  - spinbutton [disabled] [ref=e66]: "100000"
+                  - generic [ref=e67]: 円
+                - generic [ref=e68]: 太陽光設備に使える補助金です。初期費用から差し引いて計算します。
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - text: 発電量が毎年減る割合
+                  - button "発電量が毎年減る割合の説明を開く" [ref=e71] [cursor=pointer]: i
+                - generic [ref=e72]:
+                  - spinbutton [disabled] [ref=e73]: "0.5"
+                  - generic [ref=e74]: "%"
+                - generic [ref=e75]: 経年による発電性能の低下率です。0.5%なら毎年前年の99.5%を発電すると仮定します。
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - text: 屋根の向き
+                - button "屋根の向きの説明を開く" [ref=e78] [cursor=pointer]: i
+              - combobox [disabled] [ref=e79]:
+                - option "南（基準）" [selected]
+                - option "南東・南西"
+                - option "東・西"
+                - option "北東・北西"
+                - option "北"
+              - generic [ref=e80]: パネルの方角による発電量の差を補正します。南向きを100%として概算します。
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - text: 自家消費率
+                - button "自家消費率の説明を開く" [ref=e83] [cursor=pointer]: i
+              - generic [ref=e84]:
+                - generic [ref=e85]:
+                  - text: 日中の過ごし方から選ぶ
+                  - button "日中の過ごし方から選ぶの説明を開く" [ref=e86] [cursor=pointer]: i
+                - combobox [ref=e87] [cursor=pointer]:
+                  - option "昼間はほとんど不在（20%）"
+                  - option "日中もときどき在宅（30%）" [selected]
+                  - option "日中の在宅が多い（40%）"
+                  - option "自分で細かく調整"
+              - generic [ref=e88]:
+                - slider [disabled] [ref=e89]: "30"
+                - status [ref=e90]: 30%
+              - generic [ref=e91]: 発電した電気を家庭内で使う割合です。日中の過ごし方を選ぶか、スライダーで細かく調整できます。
+          - group [ref=e92]:
+            - generic [ref=e93]:
+              - text: 03 蓄電池
+              - button "蓄電池の説明を開く" [ref=e94] [cursor=pointer]: i
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - strong [ref=e97]: 蓄電池プランも比較
+                - generic [ref=e98]: 交換費用に加え、停電時の備えとしての価値も考えて比較します
+              - checkbox "蓄電池プランも比較 交換費用に加え、停電時の備えとしての価値も考えて比較します" [checked] [ref=e99]
+            - generic [ref=e100]:
+              - generic [ref=e101]:
+                - generic [ref=e102]:
+                  - strong [ref=e103]: おまかせ
+                  - generic [ref=e104]: 一般的な導入費用・利用割合・交換時期を使います
+                - checkbox "おまかせ 一般的な導入費用・利用割合・交換時期を使います" [checked] [ref=e105]
+              - generic [ref=e106]:
+                - generic [ref=e107]:
+                  - text: 導入費用
+                  - generic [ref=e108]:
+                    - spinbutton "導入費用 円 蓄電池本体と設置工事を含む導入時の総額です。" [disabled] [ref=e109]: "1500000"
+                    - generic [ref=e110]: 円
+                  - generic [ref=e111]: 蓄電池本体と設置工事を含む導入時の総額です。
+                - generic [ref=e112]:
+                  - text: 補助金
+                  - generic [ref=e113]:
+                    - spinbutton "補助金 円 蓄電池に使える補助金です。蓄電池の初期費用から差し引きます。" [disabled] [ref=e114]: "300000"
+                    - generic [ref=e115]: 円
+                  - generic [ref=e116]: 蓄電池に使える補助金です。蓄電池の初期費用から差し引きます。
+              - generic [ref=e117]:
+                - generic [ref=e118]:
+                  - text: 自家消費率（蓄電池あり）
+                  - button "自家消費率（蓄電池あり）の説明を開く" [ref=e119] [cursor=pointer]: i
+                - generic [ref=e120]:
+                  - slider [disabled] [ref=e121]: "70"
+                  - status [ref=e122]: 70%
+                - generic [ref=e123]: 蓄電池を使って、発電電力を昼間以外にも回して家庭で使える割合です。
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - text: 交換年
+                  - generic [ref=e126]:
+                    - spinbutton "交換年 年目 寿命や容量低下を想定して、蓄電池を交換する年を指定します。" [disabled] [ref=e127]: "15"
+                    - generic [ref=e128]: 年目
+                  - generic [ref=e129]: 寿命や容量低下を想定して、蓄電池を交換する年を指定します。
+                - generic [ref=e130]:
+                  - text: 交換費用
+                  - generic [ref=e131]:
+                    - spinbutton "交換費用 円 将来の蓄電池交換に必要と見込む費用です。" [disabled] [ref=e132]: "1000000"
+                    - generic [ref=e133]: 円
+                  - generic [ref=e134]: 将来の蓄電池交換に必要と見込む費用です。
+          - group [ref=e135]:
+            - generic "電気料金・機器交換の詳しい設定 ›" [ref=e136] [cursor=pointer]
+      - generic [ref=e137]:
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - paragraph [ref=e140]: YOUR FORECAST
+            - heading "30年間の見通し" [level=2] [ref=e141]
+          - generic [ref=e142]:
+            - button "画像を保存" [disabled] [ref=e143]
+            - button "結果をシェア" [disabled] [ref=e144]
+        - generic [ref=e145]:
+          - generic [ref=e146]: ⌖
+          - strong [ref=e147]: 都道府県を選択してください
+          - paragraph [ref=e148]: 地域を選ぶと、日照条件をもとに30年間の見通しを表示します。
+        - article [ref=e149]:
+          - generic [ref=e151]:
+            - heading [level=3] [ref=e152]:
+              - text: これまでに払う合計金額の推移
+              - button "これまでに払う合計金額の推移の説明を開く" [ref=e153] [cursor=pointer]: i
+            - paragraph [ref=e154]: 最初にかかる費用・電気代・電気を売った収入・機器交換を含む概算
+          - img "30年間の累積支出比較グラフ" [ref=e156]
+        - text: ›

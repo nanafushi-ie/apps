@@ -15,6 +15,7 @@ const PREFECTURES = [
 
 const COLORS = { none: "#86918e", solar: "#e8a51d", battery: "#24745f" };
 const YEARS = 30;
+const SOLAR_COST_PER_KW = 280000;
 const TOP_PAGE_URL = window.location.href.split("?")[0].split("#")[0];
 const yen = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 });
 const compactYen = new Intl.NumberFormat("ja-JP", {
@@ -117,8 +118,14 @@ function applyPresetState() {
       $("daytimeLifestyle").value = "30";
     }
   }
+  const linkSolarCost = $("linkSolarCost");
+  if (!solarPresetEnabled && linkSolarCost.checked) {
+    $("solarCost").value = String(numberValue("panelCapacity") * SOLAR_COST_PER_KW);
+  }
   if ($("batteryPreset").checked) setPresetValues(BATTERY_PRESET);
-  setSectionLocked("solarSettings", solarPresetEnabled, ["solarPreset", "daytimeLifestyle"]);
+  setSectionLocked("solarSettings", solarPresetEnabled, ["solarPreset", "daytimeLifestyle", "linkSolarCost"]);
+  linkSolarCost.disabled = solarPresetEnabled;
+  $("solarCost").disabled = solarPresetEnabled || linkSolarCost.checked;
   setSectionLocked(
     "batterySettings",
     $("batteryPreset").checked,
@@ -677,6 +684,9 @@ function update() {
   const monthlyCost = monthlyUsage * numberValue("electricityPrice");
   $("monthlyCostEstimate").textContent =
     `月平均の電気代の目安：約${yen.format(monthlyCost)}円（使用量 約${yen.format(monthlyUsage)}kWh）`;
+  $("solarCostNote").textContent = $("linkSolarCost").checked
+    ? `${numberValue("panelCapacity").toFixed(1)}kW × 28万円 = 約${yen.format(numberValue("solarCost") / 10000)}万円として自動計算します。`
+    : "見積書にある、補助金を差し引く前の総額を入力します。";
   const hasPrefecture = Boolean($("prefecture").value);
   $("resultsEmpty").hidden = hasPrefecture;
   $("shareHeader").disabled = !hasPrefecture;
