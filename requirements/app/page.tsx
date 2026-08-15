@@ -292,7 +292,7 @@ export default function Home() {
       <button className="welcome-brand" onClick={()=>setState(s=>({...s,step:"welcome"}))} aria-label="家づくりカルテ"><BrandMark /></button>
       <div className="welcome-copy"><p className="hero-kicker">間取りを描く、その前に。</p><h1>迷わない家づくりは、<br/><em>希望の整理</em>から。</h1><p className="lead">質問にタップで答えるだけ。家族の「必ず」と「できれば」を整理して、設計士にそのまま渡せる一枚にまとめます。</p>
         <div className="mode-grid"><button aria-pressed={state.mode==="solo"} className={state.mode==="solo"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"solo"}))}><b>ひとりで整理</b><span className="mode-description">自分や家族の希望を1つにまとめる</span></button><button aria-pressed={state.mode==="pair"} className={state.mode==="pair"?"mode active":"mode"} onClick={()=>setState(s=>({...s,mode:"pair"}))}><b>ふたりで整理</b><span className="mode-description">別々に回答して、違いを見つける</span></button></div>
-        <button className="primary large" onClick={()=>setState(s=>({...s,step:"basics"}))}>カルテをつくる <span>→</span></button><p className="save-note">登録不要・入力内容はこの端末に自動保存</p><p className="operator-credit">運営：<a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくり <span aria-hidden="true">↗</span></a></p></div>
+        <button className="primary large" onClick={()=>setState(s=>({...s,step:"basics"}))}>カルテをつくる <span>→</span></button><p className="save-note">登録不要・入力内容はこの端末に自動保存</p><OperatorProfile /></div>
       <aside className="sample"><span className="paper-tag">完成イメージ</span><div className="paper"><small>HOME PLANNING BRIEF</small><h2>家づくりカルテ</h2><p className="paper-date">OUR HOME / 2026</p><hr/><h3>必ず実現したいこと</h3><ol><li><b>1</b><span>1階で生活を完結<br/><small>将来も無理なく暮らせる動線を重視</small></span></li><li><b>2</b><span>高気密高断熱<br/><small>年間を通じた室温の安定を重視</small></span></li><li><b>3</b><span>室内干しランドリー<br/><small>短い洗濯動線を重視</small></span></li></ol><div className="stamp">選ぶだけで<br/>完成</div></div></aside>
     </section>}
 
@@ -322,11 +322,10 @@ export default function Home() {
 
     {state.step==="document" && <Document basics={state.basics} answer={state.mode==="solo"?state.answers[0]:mergeAnswers(state.answers)} mode={state.mode} diffs={diffs} onBack={()=>setState(s=>({...s,step:state.mode==="pair"?"diff":"wishes"}))} />}
     {helpItemId&&HELP[helpItemId]&&<HelpModal target={item(helpItemId)} help={HELP[helpItemId]} close={()=>setHelpItemId(null)}/>}
-    <OperatorProfile />
   </main>;
 }
 
-function OperatorProfile() { return <aside className="operator-profile no-print" aria-labelledby="operator-profile-title"><img src="./nanafushi-profile.webp" alt="草木に囲まれたななふしと家のイラスト"/><div><p className="operator-label">運営者プロフィール</p><h2 id="operator-profile-title">ななふし</h2><p>IT系研究職・2児の父として、一級建築士の妻とともに注文住宅づくりを検討中。</p><p>noteでは、家づくりの検討過程を、できるだけ感覚だけでなく「なぜそう考えたか」まで整理して発信しています。</p><a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくりをnoteで読む <span aria-hidden="true">↗</span></a></div></aside> }
+function OperatorProfile() { return <aside className="operator-profile no-print" aria-labelledby="operator-profile-title"><img src="./nanafushi-profile-2026.webp" alt="草木に囲まれたななふしと家のイラスト"/><div><p className="operator-label">運営者プロフィール</p><h2 id="operator-profile-title">ななふし</h2><p>IT系研究職・2児の父として、一級建築士の妻とともに注文住宅づくりを検討中。</p><p>noteでは、家づくりの検討過程を、できるだけ感覚だけでなく「なぜそう考えたか」まで整理して発信しています。</p><a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくりをnoteで読む <span aria-hidden="true">↗</span></a></div></aside> }
 
 function StepHead({number,title,text}:{number:string,title:string,text:string}) { return <div className="step-head"><span>{number}</span><div><h1>{title}</h1><p>{text}</p></div></div> }
 function BrandMark() { return <span className="brand-lockup"><span className="brand-icon" aria-hidden="true"><i>✓</i></span><span className="brand-words"><b>家づくりカルテ</b><small>HOME PLANNING BRIEF</small></span></span> }
