@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f1e8" />
+    <meta
+      name="description"
+      content="家づくりに役立つアプリをまとめたランチャーページです。"
+    />
+    <title>家づくりアプリ</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #24352c;
+        --muted: #68746d;
+        --paper: #f5f1e8;
+        --card: rgba(255, 255, 255, 0.78);
+        --line: rgba(36, 53, 44, 0.12);
+        --accent: #3e6b57;
+        --shadow: 0 18px 50px rgba(54, 69, 60, 0.1);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% 8%, rgba(237, 191, 103, 0.2), transparent 26rem),
+          radial-gradient(circle at 92% 82%, rgba(90, 139, 116, 0.16), transparent 28rem),
+          var(--paper);
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      }
+
+      main {
+        width: min(1080px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: clamp(56px, 9vw, 112px) 0 72px;
+      }
+
+      header { max-width: 690px; }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: var(--accent);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Georgia, "Yu Mincho", serif;
+        font-size: clamp(2.4rem, 7vw, 5.6rem);
+        font-weight: 500;
+        letter-spacing: -0.045em;
+        line-height: 1.05;
+      }
+
+      .intro {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 2vw, 1.16rem);
+        line-height: 1.9;
+      }
+
+      .apps {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: clamp(42px, 7vw, 72px);
+      }
+
+      .app-card {
+        position: relative;
+        display: flex;
+        min-height: 250px;
+        padding: 30px;
+        overflow: hidden;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        text-decoration: none;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .app-card::after {
+        position: absolute;
+        right: -42px;
+        bottom: -50px;
+        width: 170px;
+        height: 170px;
+        background: var(--tint);
+        border-radius: 50%;
+        content: "";
+        opacity: 0.7;
+      }
+
+      .app-card:hover,
+      .app-card:focus-visible {
+        transform: translateY(-5px);
+        border-color: rgba(62, 107, 87, 0.34);
+        box-shadow: 0 24px 60px rgba(54, 69, 60, 0.16);
+        outline: none;
+      }
+
+      .card-body {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+      }
+
+      .icon {
+        display: grid;
+        width: 52px;
+        height: 52px;
+        place-items: center;
+        margin-bottom: 32px;
+        background: var(--tint);
+        border-radius: 16px;
+        font-size: 1.55rem;
+      }
+
+      h2 { margin: 0; font-size: 1.42rem; letter-spacing: 0.01em; }
+
+      .description {
+        max-width: 27rem;
+        margin: 10px 0 26px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.75;
+      }
+
+      .open {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+        color: var(--accent);
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .arrow { transition: transform 180ms ease; }
+      .app-card:hover .arrow { transform: translateX(4px); }
+
+      footer {
+        margin-top: 48px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-align: center;
+      }
+
+      @media (max-width: 680px) {
+        main { width: min(100% - 28px, 1080px); padding-top: 48px; }
+        .apps { grid-template-columns: 1fr; }
+        .app-card { min-height: 225px; padding: 25px; }
+        .icon { margin-bottom: 25px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app-card, .arrow { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">HOME PLANNING TOOLBOX</p>
+        <h1>家づくりアプリ</h1>
+        <p class="intro">
+          暮らしのイメージを、少しずつ具体的に。<br />使いたいツールを選んでください。
+        </p>
+      </header>
+
+      <section class="apps" aria-label="アプリ一覧">
+        <a class="app-card" href="./requirements/" style="--tint: #f4dfb7">
+          <span class="card-body">
+            <span class="icon" aria-hidden="true">✓</span>
+            <h2>家づくりカルテ</h2>
+            <span class="description">家族の「必ず」と「できれば」を整理して、設計士に伝えられる形にまとめます。</span>
+            <span class="open">アプリを開く <span class="arrow" aria-hidden="true">→</span></span>
+          </span>
+        </a>
+
+        <a class="app-card" href="./madori/" style="--tint: #cadfd3">
+          <span class="card-body">
+            <span class="icon" aria-hidden="true">⌂</span>
+            <h2>間取りスケッチャー</h2>
+            <span class="description">部屋を配置しながら、住まいの間取りを手軽にスケッチできます。</span>
+            <span class="open">アプリを開く <span class="arrow" aria-hidden="true">→</span></span>
+          </span>
+        </a>
+
+        <a class="app-card" href="./storage/" style="--tint: #d7d3e8">
+          <span class="card-body">
+            <span class="icon" aria-hidden="true">▦</span>
+            <h2>収納量シミュレーター</h2>
+            <span class="description">持ち物の量と収納の内寸から、どこに何をしまうか計画できます。</span>
+            <span class="open">アプリを開く <span class="arrow" aria-hidden="true">→</span></span>
+          </span>
+        </a>
+
+        <a class="app-card" href="./solar/" style="--tint: #f7dca2">
+          <span class="card-body">
+            <span class="icon" aria-hidden="true">☀</span>
+            <h2>ひだまりシミュレータ</h2>
+            <span class="description">太陽光発電と蓄電池の長期コストを、暮らしの条件に合わせて比較します。</span>
+            <span class="open">アプリを開く <span class="arrow" aria-hidden="true">→</span></span>
+          </span>
+        </a>
+      </section>
+
+      <footer>4 apps available</footer>
+    </main>
+  </body>
+</html>
