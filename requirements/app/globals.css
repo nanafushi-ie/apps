@@ -119,3 +119,6 @@
 @media(max-width:600px){.basic-list fieldset{padding:32px 0 20px}.basic-list legend{font-size:17px;margin-bottom:15px}.basic-list legend span{margin-right:15px}}
 
 @media print{.facts{grid-template-columns:repeat(6,1fr)}}
+
+.operator-profile{max-width:940px;margin:70px auto;padding:36px;display:grid;grid-template-columns:140px 1fr;gap:32px;align-items:center;border:1px solid var(--line);border-radius:8px;background:#fffdf8;box-shadow:0 18px 50px rgba(38,53,45,.08)}.operator-profile img{width:140px;height:140px;object-fit:cover;border-radius:50%;border:5px solid #f1eedf}.operator-profile .operator-label{margin:0 0 6px;color:var(--orange);font-size:10px;font-weight:800;letter-spacing:.14em}.operator-profile h2{margin:0 0 13px;font:28px/1.3 "Yu Mincho",serif}.operator-profile div>p:not(.operator-label){margin:5px 0;color:var(--muted);font-size:13px;line-height:1.8}.operator-profile a{display:inline-block;margin-top:16px;color:var(--green);font-size:12px;font-weight:800;text-underline-offset:4px}
+@media(max-width:600px){.operator-profile{margin:48px 16px;padding:26px 22px;grid-template-columns:1fr;text-align:center}.operator-profile img{width:112px;height:112px;margin:auto}.operator-profile div>p:not(.operator-label){text-align:left}}

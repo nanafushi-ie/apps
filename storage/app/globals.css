@@ -203,12 +203,22 @@ footer { padding: 28px 24px; display: flex; justify-content: center; gap: 15px; 
 footer b { font-family: "Yu Mincho", serif; }
 footer span { opacity: .72; font-size: 12px; align-self: center; }
 
+.operator-profile { width: min(900px, calc(100% - 32px)); margin: 70px auto; padding: 34px; display: grid; grid-template-columns: 140px 1fr; gap: 30px; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 18px 50px rgba(35, 57, 46, .08); }
+.operator-profile img { width: 140px; height: 140px; object-fit: cover; border: 5px solid #eef1df; border-radius: 50%; }
+.operator-profile .operator-label { margin: 0 0 5px; color: var(--orange); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.operator-profile h2 { margin: 0 0 12px; font-family: "Yu Mincho", serif; font-size: 28px; }
+.operator-profile div > p:not(.operator-label) { margin: 5px 0; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.operator-profile a { display: inline-block; margin-top: 15px; color: var(--green); font-size: 12px; font-weight: 800; text-underline-offset: 4px; }
+
 @media (max-width: 840px) {
   .hero { padding: 24px; }
   .result-column { grid-template-columns: minmax(0, 1fr) 260px; align-items: start; }
 }
 
 @media (max-width: 620px) {
+  .operator-profile { margin: 48px auto; padding: 25px 21px; grid-template-columns: 1fr; text-align: center; }
+  .operator-profile img { width: 112px; height: 112px; margin: auto; }
+  .operator-profile div > p:not(.operator-label) { text-align: left; }
   .site-header { height: 60px; padding: 0 16px; }
   .site-header > p { display: none; }
   .hero { padding: 16px; }

@@ -13,7 +13,7 @@ const PREFECTURES = [
   ["宮崎県", 1270], ["鹿児島県", 1210], ["沖縄県", 1190]
 ];
 
-const COLORS = { none: "#86918e", solar: "#e8a51d", battery: "#24745f" };
+const COLORS = { none: "#86918e", solar: "#e8a51d", battery: "#c65343" };
 const YEARS = 30;
 const SOLAR_COST_PER_KW = 280000;
 const TOP_PAGE_URL = window.location.href.split("?")[0].split("#")[0];

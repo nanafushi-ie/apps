@@ -410,6 +410,7 @@ export default function Home() {
           </section>
         </div>
       </section>
+      <aside className="operator-profile" aria-labelledby="operator-profile-title"><img src={`${import.meta.env.BASE_URL}nanafushi-profile.webp`} alt="草木に囲まれたななふしと家のイラスト"/><div><p className="operator-label">運営者プロフィール</p><h2 id="operator-profile-title">ななふし</h2><p>IT系研究職・2児の父として、一級建築士の妻とともに注文住宅づくりを検討中。</p><p>家づくりの検討過程を、できるだけ感覚だけでなく「なぜそう考えたか」まで整理して発信します。</p><a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくりをnoteで読む <span aria-hidden="true">↗</span></a></div></aside>
       <footer><b>しまえる？</b><span>数えて、測って、ちょうどよく。</span></footer>
     </main>
   );

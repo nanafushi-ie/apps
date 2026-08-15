@@ -322,8 +322,11 @@ export default function Home() {
 
     {state.step==="document" && <Document basics={state.basics} answer={state.mode==="solo"?state.answers[0]:mergeAnswers(state.answers)} mode={state.mode} diffs={diffs} onBack={()=>setState(s=>({...s,step:state.mode==="pair"?"diff":"wishes"}))} />}
     {helpItemId&&HELP[helpItemId]&&<HelpModal target={item(helpItemId)} help={HELP[helpItemId]} close={()=>setHelpItemId(null)}/>}
+    <OperatorProfile />
   </main>;
 }
+
+function OperatorProfile() { return <aside className="operator-profile no-print" aria-labelledby="operator-profile-title"><img src="./nanafushi-profile.webp" alt="草木に囲まれたななふしと家のイラスト"/><div><p className="operator-label">運営者プロフィール</p><h2 id="operator-profile-title">ななふし</h2><p>IT系研究職・2児の父として、一級建築士の妻とともに注文住宅づくりを検討中。</p><p>家づくりの検討過程を、できるだけ感覚だけでなく「なぜそう考えたか」まで整理して発信します。</p><a href="https://note.com/nanafushi_ie" target="_blank" rel="noopener noreferrer">ななふしの家づくりをnoteで読む <span aria-hidden="true">↗</span></a></div></aside> }
 
 function StepHead({number,title,text}:{number:string,title:string,text:string}) { return <div className="step-head"><span>{number}</span><div><h1>{title}</h1><p>{text}</p></div></div> }
 function BrandMark() { return <span className="brand-lockup"><span className="brand-icon" aria-hidden="true"><i>✓</i></span><span className="brand-words"><b>家づくりカルテ</b><small>HOME PLANNING BRIEF</small></span></span> }
