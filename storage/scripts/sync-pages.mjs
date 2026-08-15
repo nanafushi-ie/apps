@@ -10,3 +10,4 @@ await copyFile("dist/favicon.svg", "favicon.svg");
 await copyFile("dist/og.png", "og.png");
 await copyFile("dist/cover-desktop.png", "cover-desktop.png");
 await copyFile("dist/cover-mobile.png", "cover-mobile.png");
+await copyFile("dist/nanafushi-profile.webp", "nanafushi-profile.webp");
