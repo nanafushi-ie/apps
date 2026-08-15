@@ -911,9 +911,9 @@
                 };
             };
 
-            if (entryStep === 'welcome') {
+            if (entryStep === 'welcome' || entryStep === 'setup') {
                 return (
-                    <main className="min-h-screen bg-[#eee9df] px-4 py-10 font-sans text-[#29372f] sm:py-16">
+                    <main className="h-screen overflow-y-auto bg-[#eee9df] px-4 py-10 font-sans text-[#29372f] sm:py-16">
                         <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".json" className="hidden" />
                         <section className="mx-auto w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[#d8d0c2] bg-[#fffdf8] shadow-2xl">
                             <div className="flex items-center gap-3 border-b border-[#d8d0c2] bg-[#fbf7ef] px-6 py-5 sm:px-9">
@@ -925,21 +925,52 @@
                                     <img src="./assets/madori-social-cover-v2.png" alt="部屋を並べた間取り例と、間取りスケッチャーの紹介" className="h-full min-h-[340px] w-full object-contain" />
                                     <figcaption className="sr-only">部屋の広さと並びから間取りを検討できるアプリです。</figcaption>
                                 </figure>
-                                <div className="p-7 sm:p-12">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#bf6b32]">Start planning</p>
-                                    <h2 className="mt-2 font-serif text-2xl font-black text-[#183b2d] sm:text-3xl">どこから始めますか？</h2>
-                                    <p className="mt-4 text-sm font-bold leading-8 text-slate-600">新しい間取りを一からつくるか、以前保存したJSONファイルから続きを始めるか選んでください。</p>
-                                    <div className="mt-7 grid gap-3">
-                                        <button type="button" onClick={() => setEntryStep('setup')} className="flex min-h-[92px] items-center gap-4 rounded-2xl border-2 border-emerald-700 bg-emerald-800 p-5 text-left text-white shadow-lg transition hover:bg-emerald-900 active:scale-[0.99]">
-                                            <span className="rounded-xl bg-white/15 p-3"><SvgIcon name="Plus" size={24} /></span>
-                                            <span><b className="block text-base">はじめから間取りをつくる</b><small className="mt-1 block font-bold text-emerald-100">家の外形を設定して、新しいプランを始めます</small></span>
-                                        </button>
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-[92px] items-center gap-4 rounded-2xl border-2 border-slate-200 bg-white p-5 text-left text-slate-700 shadow-sm transition hover:border-emerald-400 hover:bg-amber-50 active:scale-[0.99]">
-                                            <span className="rounded-xl bg-emerald-50 p-3 text-emerald-700"><SvgIcon name="FileText" size={24} /></span>
-                                            <span><b className="block text-base">既存の間取りを読み込む</b><small className="mt-1 block font-bold text-slate-400">保存済みのJSONファイルから再開します</small></span>
-                                        </button>
+                                {entryStep === 'welcome' ? (
+                                    <div className="p-7 sm:p-12">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#bf6b32]">Start planning</p>
+                                        <h2 className="mt-2 font-serif text-2xl font-black text-[#183b2d] sm:text-3xl">どこから始めますか？</h2>
+                                        <p className="mt-4 text-sm font-bold leading-8 text-slate-600">新しい間取りを一からつくるか、以前保存したJSONファイルから続きを始めるか選んでください。</p>
+                                        <div className="mt-7 grid gap-3">
+                                            <button type="button" onClick={() => setEntryStep('setup')} className="flex min-h-[92px] items-center gap-4 rounded-2xl border-2 border-emerald-700 bg-emerald-800 p-5 text-left text-white shadow-lg transition hover:bg-emerald-900 active:scale-[0.99]">
+                                                <span className="rounded-xl bg-white/15 p-3"><SvgIcon name="Plus" size={24} /></span>
+                                                <span><b className="block text-base">はじめから間取りをつくる</b><small className="mt-1 block font-bold text-emerald-100">家の外形を設定して、新しいプランを始めます</small></span>
+                                            </button>
+                                            <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-[92px] items-center gap-4 rounded-2xl border-2 border-slate-200 bg-white p-5 text-left text-slate-700 shadow-sm transition hover:border-emerald-400 hover:bg-amber-50 active:scale-[0.99]">
+                                                <span className="rounded-xl bg-emerald-50 p-3 text-emerald-700"><SvgIcon name="FileText" size={24} /></span>
+                                                <span><b className="block text-base">既存の間取りを読み込む</b><small className="mt-1 block font-bold text-slate-400">保存済みのJSONファイルから再開します</small></span>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="p-7 sm:p-10">
+                                        <button type="button" onClick={() => setEntryStep('welcome')} className="mb-4 text-[11px] font-black text-emerald-800 hover:underline">← 開始方法へ戻る</button>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#bf6b32]">Initial setup</p>
+                                        <h2 className="mt-2 font-serif text-2xl font-black text-[#183b2d]">家の外形を決める</h2>
+                                        <p className="mt-2 text-xs font-bold text-slate-400">あとからサイドバーで寸法を調整できます。</p>
+                                        <div className="mt-6 space-y-4 text-left">
+                                            <div>
+                                                <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">寸法モジュール</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {['tatami', 'meter'].map(key => { const option = MODULE_OPTIONS[key]; const isActive = moduleKey === key; return <button key={key} type="button" onClick={() => selectModule(key)} className={`rounded-xl border-2 p-3 text-left transition-all ${isActive ? 'border-emerald-700 bg-amber-50 text-emerald-900 shadow-sm' : 'border-slate-100 bg-white text-slate-500 hover:border-emerald-300'}`}><span className="block text-[11px] font-black">{option.label}</span><span className="mt-1 block text-[9px] font-bold opacity-70">{option.description}</span></button>; })}
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <DimensionInput label="幅 (mm)" value={gridToMm(baseDraft.w)} stepMm={unitSizeMm / 2} onCommit={(mm, meta) => setBaseDraft({...baseDraft, w: mmToGrid(mm, meta.source)})} />
+                                                <DimensionInput label="奥行 (mm)" value={gridToMm(baseDraft.h)} stepMm={unitSizeMm / 2} onCommit={(mm, meta) => setBaseDraft({...baseDraft, h: mmToGrid(mm, meta.source)})} />
+                                            </div>
+                                            <div>
+                                                <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">検討するフロア</p>
+                                                <div className="grid grid-cols-3 gap-2">{[1, 2, 3].map(count => <button key={count} type="button" onClick={() => setFloorCount(count)} className={`rounded-xl border-2 py-3 text-center text-[11px] font-black transition-all ${floorCount === count ? 'border-emerald-700 bg-amber-50 text-emerald-900' : 'border-slate-100 bg-white text-slate-500'}`}>{count === 1 ? '1フロア' : `${count}フロア`}</button>)}</div>
+                                            </div>
+                                            <div>
+                                                <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">開始方法</p>
+                                                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setStartMode('rooms')} className={`rounded-xl border-2 p-3 text-left transition-all ${startMode === 'rooms' ? 'border-emerald-700 bg-amber-50 text-emerald-900' : 'border-slate-100 bg-white text-slate-500'}`}><span className="block text-[11px] font-black">部屋を適当に配置</span><span className="mt-1 block text-[9px] font-bold opacity-70">1Fに8室をランダム配置</span></button><button type="button" onClick={() => setStartMode('empty')} className={`rounded-xl border-2 p-3 text-left transition-all ${startMode === 'empty' ? 'border-emerald-700 bg-amber-50 text-emerald-900' : 'border-slate-100 bg-white text-slate-500'}`}><span className="block text-[11px] font-black">部屋を配置しない</span><span className="mt-1 block text-[9px] font-bold opacity-70">外形のみを配置</span></button></div>
+                                            </div>
+                                            <div className="rounded-2xl border border-emerald-100 bg-amber-50 p-3 text-center" aria-live="polite"><p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">家の外形面積</p><p className="mt-1 text-2xl font-black text-emerald-900">{baseArea.tsubo}<span className="ml-1 text-sm">坪</span></p><p className="mt-1 text-[10px] font-bold text-slate-500">{baseArea.sqm}㎡（{baseArea.mWidth}m × {baseArea.mHeight}m）</p></div>
+                                            <button onClick={() => { addElement({ label: '家の外形', defaultW: baseDraft.w, defaultH: baseDraft.h, color: 'bg-white/50 border-slate-300 border-2 border-dashed', type: 'base' }); setEntryStep('editor'); }} className="w-full rounded-xl bg-emerald-800 py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-xl transition hover:bg-emerald-900">確定して配置</button>
+                                        </div>
+                                    </div>
+                                )}
                                 <aside className="border-t border-[#d8d0c2] bg-[#f6f1e7] p-7 sm:p-10 lg:col-span-2 lg:flex lg:items-center lg:gap-9" aria-labelledby="welcome-operator-title">
                                     <img src="./nanafushi-profile.webp" alt="草木に囲まれたななふしと家のイラスト" className="h-32 w-32 shrink-0 rounded-full border-[5px] border-white object-cover shadow-md" />
                                     <div>
